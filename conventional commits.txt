@@ -1,0 +1,23 @@
+Tipos más comunes (type)
+
+init → inicialización del proyecto.
+
+feat → nueva funcionalidad.
+
+fix → corrección de un bug.
+
+docs → cambios en documentación.
+
+style → cambios de formato/estilo (espacios, identación, CSS), sin alterar lógica.
+
+refactor → reestructuración de código sin cambiar funcionalidad.
+
+test → añadir o corregir pruebas.
+
+chore → tareas menores (configuración, dependencias, scripts de build).
+
+perf → mejoras de rendimiento.
+
+ci → configuración de integración continua.
+
+build → cambios en dependencias, empaquetado o build del proyecto.
