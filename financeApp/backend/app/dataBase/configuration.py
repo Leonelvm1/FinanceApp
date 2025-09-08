@@ -1,10 +1,10 @@
-#Data base connection configuration
+# Data base connection configuration
 
 from sqlalchemy import create_engine, event
-from sqlalchemy.orm import sessionmaker,
+from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.engine import Engine
 
-#data to connect to the database
+# data to connect to the database
 
 dataBaseName = "financeDB"
 username = "root"
@@ -12,11 +12,14 @@ userPassword = ""
 connetionPort = "3306"
 server = "localhost"
 
-#create the connection
+# create the connection
 dataBaseConnection = f"mysql+pymysql://{username}:{userPassword}@{server}:{connetionPort}/{dataBaseName}"
 
-#create the engine
+# create the engine
 engine = create_engine(dataBaseConnection)
 
-#session
-sessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+# session
+SessionLocal = sessionmaker(autocommit = False, autoflush = False, bind = engine)
+                            
+# Base class for models
+Base = declarative_base()

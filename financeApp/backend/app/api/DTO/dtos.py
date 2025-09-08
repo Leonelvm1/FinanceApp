@@ -1,40 +1,49 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from datetime import date
-from typing import List, Optional
+from typing import List
 
-#User DTOs
+# =========================
+# User DTOs
+# =========================
 class UserDTOPetition(BaseModel):
-    name: string
-    birthDate: string
-    location: string
-    savingsGoal: number
-    password: string
+    full_name: str
+    birth_date: date
+    location: str
+    savings_goal: float
+    password: str
 
     class Config:
         orm_mode = True
+
 
 class UserDTOResponse(BaseModel):
     id: int
-    name: string
-    savingsGoal: number
-    password: string
-    expenses: List['ExpenseDTOResponse'] = []  # Related expenses
-    incomes: List['IncomeDTOResponse'] = []    # Related incomes
-    categories: List['CategoryDTOResponse'] = []  # Related categories
- 
+    full_name: str
+    birth_date: date
+    location: str
+    savings_goal: float
+    password: str
+    expenses: List['ExpenseDTOResponse'] = []
+    incomes: List['IncomeDTOResponse'] = []
+    categories: List['CategoryDTOResponse'] = []
+
     class Config:
         orm_mode = True
 
-#Expense DTOs
+
+# =========================
+# Expense DTOs
+# =========================
 class ExpenseDTOPetition(BaseModel):
     description: str
     category: str
     amount: float
     date: date
-    userId: int
+    user_id: int
 
     class Config:
         orm_mode = True
+
 
 class ExpenseDTOResponse(BaseModel):
     id: int
@@ -42,21 +51,25 @@ class ExpenseDTOResponse(BaseModel):
     category: str
     amount: float
     date: date
-    userId: int
+    user_id: int
 
     class Config:
         orm_mode = True
 
-#category DTOs
+
+# =========================
+# Category DTOs
+# =========================
 class CategoryDTOPetition(BaseModel):
     name: str
     description: str
     value: float
     date: date
-    userId: int
+    user_id: int
 
     class Config:
         orm_mode = True
+
 
 class CategoryDTOResponse(BaseModel):
     id: int
@@ -64,27 +77,31 @@ class CategoryDTOResponse(BaseModel):
     description: str
     value: float
     date: date
-    userId: int
+    user_id: int
 
     class Config:
         orm_mode = True
 
-#Income DTOs
+
+# =========================
+# Income DTOs
+# =========================
 class IncomeDTOPetition(BaseModel):
     description: str
-    value: float
+    amount: float
     date: date
-    userId: int
+    user_id: int
 
     class Config:
         orm_mode = True
+
 
 class IncomeDTOResponse(BaseModel):
     id: int
     description: str
-    value: float
+    amount: float
     date: date
-    userId: int
+    user_id: int
 
     class Config:
         orm_mode = True
