@@ -1,25 +1,22 @@
-# Data base connection configuration
-
-from sqlalchemy import create_engine, event
+import os
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
-from sqlalchemy.engine import Engine
 
-# data to connect to the database
+# Database connection data (load from env or default values)
+username = os.getenv("DB_USER", "root")
+userPassword = os.getenv("DB_PASS", "")
+server = os.getenv("DB_HOST", "localhost")
+connectionPort = os.getenv("DB_PORT", "3306")
+dataBaseName = os.getenv("DB_NAME", "financeDB")
 
-dataBaseName = "financeDB"
-username = "root"
-userPassword = ""
-connetionPort = "3306"
-server = "localhost"
+# Full DB connection string
+dataBaseConnection = f"mysql+pymysql://{username}:{userPassword}@{server}:{connectionPort}/{dataBaseName}"
 
-# create the connection
-dataBaseConnection = f"mysql+pymysql://{username}:{userPassword}@{server}:{connetionPort}/{dataBaseName}"
+# Create the engine with pre-ping to avoid stale connections
+engine = create_engine(dataBaseConnection, pool_pre_ping=True)
 
-# create the engine
-engine = create_engine(dataBaseConnection)
+# Session factory
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# session
-SessionLocal = sessionmaker(autocommit = False, autoflush = False, bind = engine)
-                            
 # Base class for models
 Base = declarative_base()

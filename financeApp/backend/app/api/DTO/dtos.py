@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import date
-from typing import List
+from typing import List, Optional
 
 # =========================
 # User DTOs
@@ -10,7 +10,7 @@ class UserDTOPetition(BaseModel):
     birth_date: date
     location: str
     savings_goal: float
-    password: str
+    password: str  # plaintext → se encripta antes de guardar
 
     class Config:
         orm_mode = True
@@ -22,7 +22,6 @@ class UserDTOResponse(BaseModel):
     birth_date: date
     location: str
     savings_goal: float
-    password: str
     expenses: List['ExpenseDTOResponse'] = []
     incomes: List['IncomeDTOResponse'] = []
     categories: List['CategoryDTOResponse'] = []
@@ -36,10 +35,10 @@ class UserDTOResponse(BaseModel):
 # =========================
 class ExpenseDTOPetition(BaseModel):
     description: str
-    category: str
     amount: float
     date: date
     user_id: int
+    category_id: int  # foreign key
 
     class Config:
         orm_mode = True
@@ -48,10 +47,11 @@ class ExpenseDTOPetition(BaseModel):
 class ExpenseDTOResponse(BaseModel):
     id: int
     description: str
-    category: str
     amount: float
     date: date
     user_id: int
+    category_id: int
+    category_name: Optional[str] = None  # lo llenamos en la query
 
     class Config:
         orm_mode = True
@@ -62,10 +62,9 @@ class ExpenseDTOResponse(BaseModel):
 # =========================
 class CategoryDTOPetition(BaseModel):
     name: str
-    description: str
-    value: float
-    date: date
-    user_id: int
+    description: Optional[str] = None
+    user_id: Optional[int] = None  # None si es global
+    is_global: bool = False
 
     class Config:
         orm_mode = True
@@ -74,10 +73,9 @@ class CategoryDTOPetition(BaseModel):
 class CategoryDTOResponse(BaseModel):
     id: int
     name: str
-    description: str
-    value: float
-    date: date
-    user_id: int
+    description: Optional[str]
+    is_global: bool
+    user_id: Optional[int] = None
 
     class Config:
         orm_mode = True
@@ -105,3 +103,13 @@ class IncomeDTOResponse(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+# =========================
+# Balance DTO
+# =========================
+class BalanceDTOResponse(BaseModel):
+    user_id: int
+    total_income: float
+    total_expense: float
+    balance: float
