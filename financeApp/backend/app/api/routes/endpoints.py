@@ -1,244 +1,121 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List
-from app.api.DTO.dtos import (
-    UserDTOPetition, UserDTOResponse,
-    ExpenseDTOPetition, ExpenseDTOResponse,
-    CategoryDTOPetition, CategoryDTOResponse,
-    IncomeDTOPetition, IncomeDTOResponse,
-    BalanceDTOResponse
-)
-from app.api.models.tablesSQL import User, Expense, Category, Income
-from app.dataBase.configuration import SessionLocal
-from passlib.hash import bcrypt
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from datetime import timedelta, datetime
 from jose import JWTError, jwt
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from passlib.context import CryptContext
+import os
+from dotenv import load_dotenv
 
-# =========================
-# JWT Config
-# =========================
-SECRET_KEY = "your-secret-key"  # ⚠️ change this for production
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
+from app.dataBase.configuration import SessionLocal
+from app.api.models.tablesSQL import User
+from app.api.DTO.dtos import UserDTOPetition, UserDTOResponse, LoginDTO, TokenDTO, TokenData
+from app.utils.security import hash_password, verify_password
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
+# Load env vars
+load_dotenv()
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = os.getenv("ALGORITHM", "HS256")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
+
+# Router
 rutes = APIRouter()
 
+# Password hashing
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# OAuth2 scheme
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+
+
 # =========================
-# DB connection
+# Database dependency
 # =========================
-def connectDB():
-    database = SessionLocal()
+def get_db():
+    db = SessionLocal()
     try:
-        yield database
+        yield db
     finally:
-        database.close()
+        db.close()
+
 
 # =========================
-# JWT Helper Functions
+# Utility functions
 # =========================
-def create_access_token(data: dict, expires_delta: timedelta = None):
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
+
+
+def get_password_hash(password):
+    return pwd_context.hash(password)
+
+
+def create_access_token(data: dict, expires_delta: timedelta | None = None):
     to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=15))
     to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
 
-def get_current_user(token: str = Depends(oauth2_scheme), database: Session = Depends(connectDB)):
-    """Validates JWT token and retrieves current user"""
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id: int = payload.get("user_id")
-        if user_id is None:
-            raise HTTPException(status_code=401, detail="Invalid token")
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    
-    user = database.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=401, detail="User not found")
-    return user
+
+def get_user_by_username(db: Session, username: str):
+    return db.query(User).filter(User.full_name == username).first()
+
 
 # =========================
-# User Endpoints
+# Auth Endpoints
 # =========================
-@rutes.post("/users/", response_model=UserDTOResponse, summary="Create a new user")
-def create_user(userData: UserDTOPetition, database: Session = Depends(connectDB)):
-    """Registers a new user with hashed password"""
-    try:
-        hashed_password = bcrypt.hash(userData.password)
-        user = User(
-            full_name=userData.full_name,
-            birth_date=userData.birth_date,
-            location=userData.location,
-            savings_goal=userData.savings_goal,
-            password=hashed_password
+@rutes.post("/signup", response_model=UserDTOResponse)
+def create_user(user: UserDTOPetition, db: Session = Depends(get_db)):
+    db_user = User(
+        full_name=user.full_name,
+        birth_date=user.birth_date,
+        location=user.location,
+        savings_goal=user.savings_goal,
+        password=get_password_hash(user.password)
+    )
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+
+@rutes.post("/login", response_model=TokenDTO)
+def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    user = get_user_by_username(db, form_data.username)
+    if not user or not verify_password(form_data.password, user.password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials",
+            headers={"WWW-Authenticate": "Bearer"},
         )
-        database.add(user)
-        database.commit()
-        database.refresh(user)
-        return user
-    except Exception as error:
-        database.rollback()
-        raise HTTPException(status_code=400, detail=f"User creation failed: {error}")
-
-@rutes.get("/users/", response_model=List[UserDTOResponse], summary="Get all users")
-def get_users(database: Session = Depends(connectDB), current_user: User = Depends(get_current_user)):
-    """Returns all registered users (protected endpoint)"""
-    try:
-        return database.query(User).all()
-    except Exception as error:
-        raise HTTPException(status_code=400, detail=f"Failed to retrieve users: {error}")
-
-# =========================
-# Login Endpoint
-# =========================
-@rutes.post("/login")
-def login(form_data: OAuth2PasswordRequestForm = Depends(), database: Session = Depends(connectDB)):
-    """Authenticates user and returns a JWT token"""
-    user = database.query(User).filter(User.full_name == form_data.username).first()
-    if not user or not bcrypt.verify(form_data.password, user.password):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-
-    access_token = create_access_token({"user_id": user.id})
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.full_name},
+        expires_delta=access_token_expires
+    )
     return {"access_token": access_token, "token_type": "bearer"}
 
+
 # =========================
-# Expense Endpoints
+# Protected Endpoint Example
 # =========================
-@rutes.post("/expenses/", response_model=ExpenseDTOResponse, summary="Create a new expense")
-def create_expense(expenseData: ExpenseDTOPetition, database: Session = Depends(connectDB), current_user: User = Depends(get_current_user)):
-    """Creates a new expense linked to a category and user"""
+@rutes.get("/users/me", response_model=UserDTOResponse)
+def read_users_me(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid token",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
     try:
-        category = database.query(Category).filter(Category.id == expenseData.category_id).first()
-        if not category:
-            raise HTTPException(status_code=404, detail="Category not found")
-
-        expense = Expense(
-            description=expenseData.description,
-            amount=expenseData.amount,
-            date=expenseData.date,
-            user_id=current_user.id,
-            category_id=expenseData.category_id
-        )
-        database.add(expense)
-        database.commit()
-        database.refresh(expense)
-
-        return ExpenseDTOResponse(
-            id=expense.id,
-            description=expense.description,
-            amount=expense.amount,
-            date=expense.date,
-            user_id=expense.user_id,
-            category_id=expense.category_id,
-            category_name=category.name
-        )
-    except Exception as error:
-        database.rollback()
-        raise HTTPException(status_code=400, detail=f"Expense creation failed: {error}")
-
-@rutes.get("/expenses/", response_model=List[ExpenseDTOResponse], summary="Get all expenses")
-def get_expenses(database: Session = Depends(connectDB), current_user: User = Depends(get_current_user)):
-    """Returns all expenses for the authenticated user"""
-    try:
-        expenses = database.query(Expense).filter(Expense.user_id == current_user.id).all()
-        response = []
-        for exp in expenses:
-            category = database.query(Category).filter(Category.id == exp.category_id).first()
-            response.append(
-                ExpenseDTOResponse(
-                    id=exp.id,
-                    description=exp.description,
-                    amount=exp.amount,
-                    date=exp.date,
-                    user_id=exp.user_id,
-                    category_id=exp.category_id,
-                    category_name=category.name if category else None
-                )
-            )
-        return response
-    except Exception as error:
-        raise HTTPException(status_code=400, detail=f"Failed to retrieve expenses: {error}")
-
-# =========================
-# Category Endpoints
-# =========================
-@rutes.post("/categories/", response_model=CategoryDTOResponse, summary="Create a new category")
-def create_category(categoryData: CategoryDTOPetition, database: Session = Depends(connectDB), current_user: User = Depends(get_current_user)):
-    """Creates a new custom category for the authenticated user"""
-    try:
-        category = Category(
-            name=categoryData.name,
-            description=categoryData.description,
-            is_global=categoryData.is_global,
-            user_id=current_user.id
-        )
-        database.add(category)
-        database.commit()
-        database.refresh(category)
-        return category
-    except Exception as error:
-        database.rollback()
-        raise HTTPException(status_code=400, detail=f"Category creation failed: {error}")
-
-@rutes.get("/categories/", response_model=List[CategoryDTOResponse], summary="Get all categories")
-def get_categories(database: Session = Depends(connectDB)):
-    """Returns both global and user-specific categories"""
-    try:
-        return database.query(Category).all()
-    except Exception as error:
-        raise HTTPException(status_code=400, detail=f"Failed to retrieve categories: {error}")
-
-# =========================
-# Income Endpoints
-# =========================
-@rutes.post("/incomes/", response_model=IncomeDTOResponse, summary="Create a new income")
-def create_income(incomeData: IncomeDTOPetition, database: Session = Depends(connectDB), current_user: User = Depends(get_current_user)):
-    """Creates a new income for the authenticated user"""
-    try:
-        income = Income(
-            description=incomeData.description,
-            amount=incomeData.amount,
-            date=incomeData.date,
-            user_id=current_user.id
-        )
-        database.add(income)
-        database.commit()
-        database.refresh(income)
-        return income
-    except Exception as error:
-        database.rollback()
-        raise HTTPException(status_code=400, detail=f"Income creation failed: {error}")
-
-@rutes.get("/incomes/", response_model=List[IncomeDTOResponse], summary="Get all incomes")
-def get_incomes(database: Session = Depends(connectDB), current_user: User = Depends(get_current_user)):
-    """Returns all incomes for the authenticated user"""
-    try:
-        return database.query(Income).filter(Income.user_id == current_user.id).all()
-    except Exception as error:
-        raise HTTPException(status_code=400, detail=f"Failed to retrieve incomes: {error}")
-
-# =========================
-# Balance Endpoint
-# =========================
-@rutes.get("/users/me/balance", response_model=BalanceDTOResponse, summary="Get current user balance")
-def get_balance(database: Session = Depends(connectDB), current_user: User = Depends(get_current_user)):
-    """Calculates balance for the authenticated user"""
-    try:
-        incomes = database.query(Income).filter(Income.user_id == current_user.id).all()
-        expenses = database.query(Expense).filter(Expense.user_id == current_user.id).all()
-
-        total_income = sum([i.amount for i in incomes])
-        total_expense = sum([e.amount for e in expenses])
-        balance = total_income - total_expense
-
-        return BalanceDTOResponse(
-            user_id=current_user.id,
-            total_income=total_income,
-            total_expense=total_expense,
-            balance=balance
-        )
-    except Exception as error:
-        raise HTTPException(status_code=400, detail=f"Failed to calculate balance: {error}")
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+    user = get_user_by_username(db, username=username)
+    if user is None:
+        raise credentials_exception
+    return user
