@@ -13,8 +13,7 @@ class UserDTOPetition(BaseModel):
     password: str
 
     class Config:
-        orm_mode = True
-
+        from_attributes = True  # v2 de Pydantic reemplaza orm_mode
 
 class UserDTOResponse(BaseModel):
     id: int
@@ -22,13 +21,18 @@ class UserDTOResponse(BaseModel):
     birth_date: date
     location: str
     savings_goal: float
+
     expenses: List['ExpenseDTOResponse'] = []
     incomes: List['IncomeDTOResponse'] = []
     categories: List['CategoryDTOResponse'] = []
 
-    class Config:
-        orm_mode = True
+    total_expenses: float
+    total_incomes: float
+    balance: float
+    savings_progress: float
 
+    class Config:
+        from_attributes = True
 
 # =========================
 # Expense DTOs
@@ -38,11 +42,9 @@ class ExpenseDTOPetition(BaseModel):
     category: str
     amount: float
     date: date
-    user_id: int
 
     class Config:
-        orm_mode = True
-
+        from_attributes = True
 
 class ExpenseDTOResponse(BaseModel):
     id: int
@@ -53,34 +55,7 @@ class ExpenseDTOResponse(BaseModel):
     user_id: int
 
     class Config:
-        orm_mode = True
-
-
-# =========================
-# Category DTOs
-# =========================
-class CategoryDTOPetition(BaseModel):
-    name: str
-    description: str
-    value: float
-    date: date
-    user_id: int
-
-    class Config:
-        orm_mode = True
-
-
-class CategoryDTOResponse(BaseModel):
-    id: int
-    name: str
-    description: str
-    value: float
-    date: date
-    user_id: int
-
-    class Config:
-        orm_mode = True
-
+        from_attributes = True
 
 # =========================
 # Income DTOs
@@ -89,11 +64,9 @@ class IncomeDTOPetition(BaseModel):
     description: str
     amount: float
     date: date
-    user_id: int
 
     class Config:
-        orm_mode = True
-
+        from_attributes = True
 
 class IncomeDTOResponse(BaseModel):
     id: int
@@ -103,21 +76,41 @@ class IncomeDTOResponse(BaseModel):
     user_id: int
 
     class Config:
-        orm_mode = True
-
+        from_attributes = True
 
 # =========================
-# Auth DTOs (Login & Token)
+# Category DTOs
+# =========================
+class CategoryDTOPetition(BaseModel):
+    name: str
+    description: Optional[str] = None
+    value: float
+    date: date
+
+    class Config:
+        from_attributes = True
+
+class CategoryDTOResponse(BaseModel):
+    id: int
+    name: str
+    description: Optional[str] = None
+    value: float
+    date: date
+    user_id: int
+
+    class Config:
+        from_attributes = True
+
+# =========================
+# Auth DTOs
 # =========================
 class LoginDTO(BaseModel):
-    username: str   # in our case this will be full_name or email
+    username: str  # full_name o email
     password: str
-
 
 class TokenDTO(BaseModel):
     access_token: str
     token_type: str = "bearer"
-
 
 class TokenData(BaseModel):
     username: Optional[str] = None

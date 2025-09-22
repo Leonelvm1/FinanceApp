@@ -1,7 +1,7 @@
 from app.dataBase.configuration import engine, SessionLocal, Base
 from app.api.models.tablesSQL import Category
+from datetime import date
 
-# Default global categories
 DEFAULT_CATEGORIES = [
     {"name": "Food", "description": "Meals, groceries, dining"},
     {"name": "Transport", "description": "Public transport, fuel, taxi"},
@@ -13,9 +13,7 @@ DEFAULT_CATEGORIES = [
 ]
 
 def seed_categories():
-    # Make sure tables exist
     Base.metadata.create_all(bind=engine)
-
     session = SessionLocal()
     try:
         for cat in DEFAULT_CATEGORIES:
@@ -24,8 +22,9 @@ def seed_categories():
                 session.add(Category(
                     name=cat["name"],
                     description=cat["description"],
-                    is_global=True,
-                    user_id=None
+                    is_global=True if hasattr(Category, "is_global") else False,
+                    user_id=None,
+                    date=date.today()
                 ))
         session.commit()
     finally:
