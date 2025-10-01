@@ -68,11 +68,34 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         raise credentials_exception
     return user
 
+
+# =========================
+# Helper: Clone default categories for new users
+# =========================
+def clone_default_categories_for_user(db: Session, user_id: int):
+    """Clones global categories (user_id=None) for a new user."""
+    default_categories = db.query(Category).filter(Category.user_id == None, Category.is_global == True).all()
+    for cat in default_categories:
+        new_cat = Category(
+            name=cat.name,
+            description=cat.description,
+            value=0.0,
+            date=date.today(),
+            user_id=user_id,
+            is_global=False
+        )
+        db.add(new_cat)
+    db.commit()
+
 # =========================
 # Auth Endpoints
 # =========================
 @routes.post("/signup", response_model=UserDTOResponse)
 def signup(user: UserDTOPetition, db: Session = Depends(get_db)):
+    existing = db.query(User).filter(User.full_name == user.full_name).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="User already exists")
+    
     db_user = User(
         full_name=user.full_name,
         birth_date=user.birth_date,
@@ -83,7 +106,14 @@ def signup(user: UserDTOPetition, db: Session = Depends(get_db)):
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
+
+    # Clone default categories for this user
+    clone_default_categories_for_user(db, int(db_user.id))
+
+
     return db_user
+
+
 
 @routes.post("/login", response_model=TokenDTO)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):

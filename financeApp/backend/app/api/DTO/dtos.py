@@ -1,6 +1,66 @@
+# app/api/DTO/dtos.py
 from pydantic import BaseModel
 from datetime import date
 from typing import List, Optional
+
+# =========================
+# Category DTOs
+# =========================
+class CategoryDTOPetition(BaseModel):
+    name: str
+
+    class Config:
+        from_attributes = True
+
+class CategoryDTOResponse(BaseModel):
+    name: str  # ⬅ Only keep name, as discussed
+
+    class Config:
+        from_attributes = True
+
+# =========================
+# Expense DTOs
+# =========================
+class ExpenseDTOPetition(BaseModel):
+    description: str
+    category: str   # user will send category name
+    amount: float
+    date: date
+
+    class Config:
+        from_attributes = True
+
+class ExpenseDTOResponse(BaseModel):
+    id: int
+    description: str
+    amount: float
+    date: date
+    category: str   # just return category name
+
+    class Config:
+        from_attributes = True
+
+# =========================
+# Income DTOs
+# =========================
+class IncomeDTOPetition(BaseModel):
+    description: str
+    amount: float
+    date: date
+    category: str   # added category here too for consistency
+
+    class Config:
+        from_attributes = True
+
+class IncomeDTOResponse(BaseModel):
+    id: int
+    description: str
+    amount: float
+    date: date
+    category: str
+
+    class Config:
+        from_attributes = True
 
 # =========================
 # User DTOs
@@ -13,7 +73,7 @@ class UserDTOPetition(BaseModel):
     password: str
 
     class Config:
-        from_attributes = True  # v2 de Pydantic reemplaza orm_mode
+        from_attributes = True
 
 class UserDTOResponse(BaseModel):
     id: int
@@ -22,9 +82,9 @@ class UserDTOResponse(BaseModel):
     location: str
     savings_goal: float
 
-    expenses: List['ExpenseDTOResponse'] = []
-    incomes: List['IncomeDTOResponse'] = []
-    categories: List['CategoryDTOResponse'] = []
+    expenses: List[ExpenseDTOResponse] = []
+    incomes: List[IncomeDTOResponse] = []
+    categories: List[CategoryDTOResponse] = []
 
     total_expenses: float
     total_incomes: float
@@ -35,77 +95,10 @@ class UserDTOResponse(BaseModel):
         from_attributes = True
 
 # =========================
-# Expense DTOs
-# =========================
-class ExpenseDTOPetition(BaseModel):
-    description: str
-    category: str
-    amount: float
-    date: date
-
-    class Config:
-        from_attributes = True
-
-class ExpenseDTOResponse(BaseModel):
-    id: int
-    description: str
-    category: str
-    amount: float
-    date: date
-    user_id: int
-
-    class Config:
-        from_attributes = True
-
-# =========================
-# Income DTOs
-# =========================
-class IncomeDTOPetition(BaseModel):
-    description: str
-    amount: float
-    date: date
-
-    class Config:
-        from_attributes = True
-
-class IncomeDTOResponse(BaseModel):
-    id: int
-    description: str
-    amount: float
-    date: date
-    user_id: int
-
-    class Config:
-        from_attributes = True
-
-# =========================
-# Category DTOs
-# =========================
-class CategoryDTOPetition(BaseModel):
-    name: str
-    description: Optional[str] = None
-    value: float
-    date: date
-
-    class Config:
-        from_attributes = True
-
-class CategoryDTOResponse(BaseModel):
-    id: int
-    name: str
-    description: Optional[str] = None
-    value: float
-    date: date
-    user_id: int
-
-    class Config:
-        from_attributes = True
-
-# =========================
 # Auth DTOs
 # =========================
 class LoginDTO(BaseModel):
-    username: str  # full_name o email
+    username: str
     password: str
 
 class TokenDTO(BaseModel):

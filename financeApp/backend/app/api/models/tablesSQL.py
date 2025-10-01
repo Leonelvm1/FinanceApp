@@ -65,6 +65,7 @@ class Income(Base):
     description = Column(String(255), nullable=False)
     amount = Column(Float, nullable=False)
     date = Column(Date, nullable=False)
+    category = Column(String(100), nullable=False)
 
     user_id = Column(Integer, ForeignKey("users.id"))
     user = relationship("User", back_populates="incomes")
