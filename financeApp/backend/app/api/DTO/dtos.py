@@ -1,4 +1,3 @@
-# app/api/DTO/dtos.py
 from pydantic import BaseModel
 from datetime import date
 from typing import List, Optional
@@ -13,7 +12,9 @@ class CategoryDTOPetition(BaseModel):
         from_attributes = True
 
 class CategoryDTOResponse(BaseModel):
-    name: str  # ⬅ Only keep name, as discussed
+    id: int
+    name: str
+    is_global: Optional[bool] = False
 
     class Config:
         from_attributes = True
@@ -23,7 +24,7 @@ class CategoryDTOResponse(BaseModel):
 # =========================
 class ExpenseDTOPetition(BaseModel):
     description: str
-    category: str   # user will send category name
+    category_id: int
     amount: float
     date: date
 
@@ -35,7 +36,8 @@ class ExpenseDTOResponse(BaseModel):
     description: str
     amount: float
     date: date
-    category: str   # just return category name
+    category_id: int
+    category_name: Optional[str]
 
     class Config:
         from_attributes = True
@@ -47,7 +49,7 @@ class IncomeDTOPetition(BaseModel):
     description: str
     amount: float
     date: date
-    category: str   # added category here too for consistency
+    category_id: int
 
     class Config:
         from_attributes = True
@@ -57,7 +59,8 @@ class IncomeDTOResponse(BaseModel):
     description: str
     amount: float
     date: date
-    category: str
+    category_id: int
+    category_name: Optional[str]
 
     class Config:
         from_attributes = True

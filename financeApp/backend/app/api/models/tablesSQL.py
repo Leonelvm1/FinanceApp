@@ -41,36 +41,6 @@ class User(Base):
         return 0.0
 
 # =========================
-# Expense Table
-# =========================
-class Expense(Base):
-    __tablename__ = "expenses"
-
-    id = Column(Integer, primary_key=True, index=True)
-    description = Column(String(255), nullable=False)
-    category = Column(String(100), nullable=False)
-    amount = Column(Float, nullable=False)
-    date = Column(Date, nullable=False)
-
-    user_id = Column(Integer, ForeignKey("users.id"))
-    user = relationship("User", back_populates="expenses")
-
-# =========================
-# Income Table
-# =========================
-class Income(Base):
-    __tablename__ = "incomes"
-
-    id = Column(Integer, primary_key=True, index=True)
-    description = Column(String(255), nullable=False)
-    amount = Column(Float, nullable=False)
-    date = Column(Date, nullable=False)
-    category = Column(String(100), nullable=False)
-
-    user_id = Column(Integer, ForeignKey("users.id"))
-    user = relationship("User", back_populates="incomes")
-
-# =========================
 # Category Table
 # =========================
 class Category(Base):
@@ -80,8 +50,42 @@ class Category(Base):
     name = Column(String(100), nullable=False)
     description = Column(String(255), nullable=True)
     value = Column(Float, default=0.0)
-    date = Column(Date, default=date.today, nullable=False)  # <-- Corregido
+    date = Column(Date, default=date.today, nullable=False)
     is_global = Column(Boolean, default=False)
 
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     user = relationship("User", back_populates="categories")
+
+# =========================
+# Expense Table (links to Category by id)
+# =========================
+class Expense(Base):
+    __tablename__ = "expenses"
+
+    id = Column(Integer, primary_key=True, index=True)
+    description = Column(String(255), nullable=False)
+    amount = Column(Float, nullable=False)
+    date = Column(Date, nullable=False)
+
+    category_id = Column(Integer, ForeignKey("categories.id"), nullable=False)
+    category = relationship("Category")  # simple relationship for reading name
+
+    user_id = Column(Integer, ForeignKey("users.id"))
+    user = relationship("User", back_populates="expenses")
+
+# =========================
+# Income Table (links to Category by id)
+# =========================
+class Income(Base):
+    __tablename__ = "incomes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    description = Column(String(255), nullable=False)
+    amount = Column(Float, nullable=False)
+    date = Column(Date, nullable=False)
+
+    category_id = Column(Integer, ForeignKey("categories.id"), nullable=False)
+    category = relationship("Category")
+
+    user_id = Column(Integer, ForeignKey("users.id"))
+    user = relationship("User", back_populates="incomes")

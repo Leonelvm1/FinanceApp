@@ -1,16 +1,17 @@
-// context/CategoryContext.jsx
-import { createContext, useState, useEffect } from "react";
+// src/context/CategoryContext.jsx
+import { createContext, useState, useEffect, useContext } from "react";
 import api from "../services/api";
+import { AuthContext } from "./AuthContext";
 
 export const CategoryContext = createContext();
 
 export const CategoryProvider = ({ children }) => {
   const [categories, setCategories] = useState([]);
+  const { token } = useContext(AuthContext); // to re-fetch when auth changes
 
-  // Fetch categories from backend
   const fetchCategories = async () => {
     try {
-      const res = await api.get("/categories/");
+      const res = await api.get("/categories"); // now handles optional auth
       setCategories(res.data);
       console.log("[CategoryContext] Categories loaded:", res.data);
     } catch (error) {
@@ -18,9 +19,10 @@ export const CategoryProvider = ({ children }) => {
     }
   };
 
+  // fetch at mount and whenever token changes (login/logout)
   useEffect(() => {
     fetchCategories();
-  }, []);
+  }, [token]);
 
   return (
     <CategoryContext.Provider value={{ categories, fetchCategories }}>

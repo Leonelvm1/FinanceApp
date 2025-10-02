@@ -17,23 +17,14 @@ from app.api.DTO.dtos import (
 )
 from app.utils.security import hash_password, verify_password
 
-# =========================
-# Environment
-# =========================
 load_dotenv()
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
 
-# =========================
-# Router & OAuth2
-# =========================
 routes = APIRouter()
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login", auto_error=False)
 
-# =========================
-# Database dependency
-# =========================
 def get_db():
     db = SessionLocal()
     try:
@@ -41,9 +32,6 @@ def get_db():
     finally:
         db.close()
 
-# =========================
-# Auth Utilities
-# =========================
 def create_access_token(data: dict, expires_delta: timedelta | None = None):
     to_encode = data.copy()
     expire = datetime.utcnow() + (expires_delta or timedelta(minutes=15))
@@ -68,12 +56,38 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         raise credentials_exception
     return user
 
+# -------------------------
+# Helpers to map models -> response dicts
+# -------------------------
+def expense_to_response(exp: Expense):
+    return {
+        "id": exp.id,
+        "description": exp.description,
+        "amount": exp.amount,
+        "date": exp.date,
+        "category_id": exp.category_id,
+        "category_name": exp.category.name if exp.category else None,
+    }
 
-# =========================
-# Helper: Clone default categories for new users
-# =========================
+def income_to_response(inc: Income):
+    return {
+        "id": inc.id,
+        "description": inc.description,
+        "amount": inc.amount,
+        "date": inc.date,
+        "category_id": inc.category_id,
+        "category_name": inc.category.name if inc.category else None,
+    }
+
+def category_to_response(cat: Category):
+    return {
+        "id": cat.id,
+        "name": cat.name,
+        "is_global": bool(cat.is_global),
+    }
+
+# Clone default categories for new user
 def clone_default_categories_for_user(db: Session, user_id: int):
-    """Clones global categories (user_id=None) for a new user."""
     default_categories = db.query(Category).filter(Category.user_id == None, Category.is_global == True).all()
     for cat in default_categories:
         new_cat = Category(
@@ -95,7 +109,7 @@ def signup(user: UserDTOPetition, db: Session = Depends(get_db)):
     existing = db.query(User).filter(User.full_name == user.full_name).first()
     if existing:
         raise HTTPException(status_code=400, detail="User already exists")
-    
+
     db_user = User(
         full_name=user.full_name,
         birth_date=user.birth_date,
@@ -107,13 +121,10 @@ def signup(user: UserDTOPetition, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_user)
 
-    # Clone default categories for this user
     clone_default_categories_for_user(db, int(db_user.id))
 
-
-    return db_user
-
-
+    # Return full user info (similar to read_users_me)
+    return read_users_me(current_user=db_user, db=db)
 
 @routes.post("/login", response_model=TokenDTO)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
@@ -131,34 +142,70 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     return {"access_token": access_token, "token_type": "bearer"}
 
 @routes.get("/users/me", response_model=UserDTOResponse)
-def read_users_me(current_user: User = Depends(get_current_user)):
-    return current_user
+def read_users_me(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    db_user = db.query(User).filter(User.id == current_user.id).first()
+
+    incomes = [income_to_response(i) for i in db_user.incomes]
+    expenses = [expense_to_response(e) for e in db_user.expenses]
+    categories = [category_to_response(c) for c in db_user.categories]
+
+    return {
+        "id": db_user.id,
+        "full_name": db_user.full_name,
+        "birth_date": db_user.birth_date,
+        "location": db_user.location,
+        "savings_goal": db_user.savings_goal,
+        "expenses": expenses,
+        "incomes": incomes,
+        "categories": categories,
+        "total_expenses": db_user.total_expenses,
+        "total_incomes": db_user.total_incomes,
+        "balance": db_user.balance,
+        "savings_progress": db_user.savings_progress,
+    }
 
 # =========================
 # Expenses CRUD
 # =========================
 @routes.post("/expenses", response_model=ExpenseDTOResponse)
 def create_expense(expense: ExpenseDTOPetition, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    db_expense = Expense(**expense.dict(), user_id=current_user.id)
+    cat = db.query(Category).filter(Category.id == expense.category_id).first()
+    if not cat:
+        raise HTTPException(status_code=400, detail="Category not found")
+    # optional: ensure cat.user_id == current_user.id or cat.is_global
+    db_expense = Expense(
+        description=expense.description,
+        amount=expense.amount,
+        date=expense.date,
+        category_id=expense.category_id,
+        user_id=current_user.id
+    )
     db.add(db_expense)
     db.commit()
     db.refresh(db_expense)
-    return db_expense
+    return expense_to_response(db_expense)
 
 @routes.get("/expenses", response_model=List[ExpenseDTOResponse])
 def get_expenses(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    return db.query(Expense).filter(Expense.user_id == current_user.id).all()
+    results = db.query(Expense).filter(Expense.user_id == current_user.id).all()
+    return [expense_to_response(r) for r in results]
 
 @routes.put("/expenses/{expense_id}", response_model=ExpenseDTOResponse)
 def update_expense(expense_id: int, expense: ExpenseDTOPetition, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     db_expense = db.query(Expense).filter(Expense.id == expense_id, Expense.user_id == current_user.id).first()
     if not db_expense:
         raise HTTPException(status_code=404, detail="Expense not found")
-    for key, value in expense.dict().items():
-        setattr(db_expense, key, value)
+    cat = db.query(Category).filter(Category.id == expense.category_id).first()
+    if not cat:
+        raise HTTPException(status_code=400, detail="Category not found")
+
+    db_expense.description = expense.description
+    db_expense.amount = expense.amount
+    db_expense.date = expense.date
+    db_expense.category_id = expense.category_id
     db.commit()
     db.refresh(db_expense)
-    return db_expense
+    return expense_to_response(db_expense)
 
 @routes.delete("/expenses/{expense_id}")
 def delete_expense(expense_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -174,26 +221,42 @@ def delete_expense(expense_id: int, current_user: User = Depends(get_current_use
 # =========================
 @routes.post("/incomes", response_model=IncomeDTOResponse)
 def create_income(income: IncomeDTOPetition, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    db_income = Income(**income.dict(), user_id=current_user.id)
+    cat = db.query(Category).filter(Category.id == income.category_id).first()
+    if not cat:
+        raise HTTPException(status_code=400, detail="Category not found")
+    db_income = Income(
+        description=income.description,
+        amount=income.amount,
+        date=income.date,
+        category_id=income.category_id,
+        user_id=current_user.id
+    )
     db.add(db_income)
     db.commit()
     db.refresh(db_income)
-    return db_income
+    return income_to_response(db_income)
 
 @routes.get("/incomes", response_model=List[IncomeDTOResponse])
 def get_incomes(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    return db.query(Income).filter(Income.user_id == current_user.id).all()
+    results = db.query(Income).filter(Income.user_id == current_user.id).all()
+    return [income_to_response(r) for r in results]
 
 @routes.put("/incomes/{income_id}", response_model=IncomeDTOResponse)
 def update_income(income_id: int, income: IncomeDTOPetition, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     db_income = db.query(Income).filter(Income.id == income_id, Income.user_id == current_user.id).first()
     if not db_income:
         raise HTTPException(status_code=404, detail="Income not found")
-    for key, value in income.dict().items():
-        setattr(db_income, key, value)
+    cat = db.query(Category).filter(Category.id == income.category_id).first()
+    if not cat:
+        raise HTTPException(status_code=400, detail="Category not found")
+
+    db_income.description = income.description
+    db_income.amount = income.amount
+    db_income.date = income.date
+    db_income.category_id = income.category_id
     db.commit()
     db.refresh(db_income)
-    return db_income
+    return income_to_response(db_income)
 
 @routes.delete("/incomes/{income_id}")
 def delete_income(income_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -209,26 +272,47 @@ def delete_income(income_id: int, current_user: User = Depends(get_current_user)
 # =========================
 @routes.post("/categories", response_model=CategoryDTOResponse)
 def create_category(category: CategoryDTOPetition, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    db_category = Category(**category.dict(), user_id=current_user.id)
+    db_category = Category(**category.dict(), user_id=current_user.id, is_global=False)
     db.add(db_category)
     db.commit()
     db.refresh(db_category)
-    return db_category
+    return category_to_response(db_category)
 
 @routes.get("/categories", response_model=List[CategoryDTOResponse])
-def get_categories(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    return db.query(Category).filter(Category.user_id == current_user.id).all()
+def get_categories(token: str | None = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    """
+    Return:
+      - If token provided and valid -> categories for that user + global ones
+      - If no token provided or invalid -> only global categories
+    """
+    user = None
+    if token:
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            username: str = payload.get("sub")
+            if username:
+                user = db.query(User).filter(User.full_name == username).first()
+        except JWTError:
+            # invalid token -> ignore and return global only
+            user = None
+
+    if user:
+        cats = db.query(Category).filter((Category.user_id == user.id) | (Category.is_global == True)).all()
+    else:
+        cats = db.query(Category).filter(Category.is_global == True).all()
+
+    return [category_to_response(c) for c in cats]
+
 
 @routes.put("/categories/{category_id}", response_model=CategoryDTOResponse)
 def update_category(category_id: int, category: CategoryDTOPetition, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     db_category = db.query(Category).filter(Category.id == category_id, Category.user_id == current_user.id).first()
     if not db_category:
         raise HTTPException(status_code=404, detail="Category not found")
-    for key, value in category.dict().items():
-        setattr(db_category, key, value)
+    db_category.name = category.name
     db.commit()
     db.refresh(db_category)
-    return db_category
+    return category_to_response(db_category)
 
 @routes.delete("/categories/{category_id}")
 def delete_category(category_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):

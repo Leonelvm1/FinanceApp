@@ -9,7 +9,7 @@ const Login = () => {
   const [password, setPassword] = useState("");
 
   const handleSubmit = async (e) => {
-    e.preventDefault(); 
+    e.preventDefault();
     await login(username, password);
     navigate("/dashboard");
   };
@@ -17,21 +17,11 @@ const Login = () => {
   return (
     <form onSubmit={handleSubmit}>
       <h2>Login</h2>
-      <input
-        type="text"
-        placeholder="Username"
-        value={username}
-        onChange={(e) => setUsername(e.target.value)}
-      />
-      <br /><br />
-      <input
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
-      <br /><br />
-      <button type="submit">Login</button>
+      <input type="text" placeholder="Username" value={username} onChange={(e)=>setUsername(e.target.value)} />
+      <br/><br/>
+      <input type="password" placeholder="Password" value={password} onChange={(e)=>setPassword(e.target.value)} />
+      <br/><br/>
+      <button type="submit" className="btn btn-primary">Login</button>
     </form>
   );
 };

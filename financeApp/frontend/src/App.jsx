@@ -14,11 +14,9 @@ const App = () => {
 
   return (
     <Routes>
-      {/* Public routes */}
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
 
-      {/* Protected routes */}
       {token ? (
         <Route path="/" element={<Layout />}>
           <Route index element={<Dashboard />} />
@@ -35,4 +33,3 @@ const App = () => {
 };
 
 export default App;
-

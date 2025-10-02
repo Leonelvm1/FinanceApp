@@ -1,13 +1,10 @@
-// components/CategoryList.jsx
 import { useContext } from "react";
 import { CategoryContext } from "../context/CategoryContext";
 
 const CategoryList = () => {
   const { categories } = useContext(CategoryContext);
 
-  if (!categories.length) {
-    return <p>No categories available.</p>;
-  }
+  if (!categories.length) return <p>No categories available.</p>;
 
   return (
     <div className="card p-3 shadow-sm">
@@ -25,3 +22,4 @@ const CategoryList = () => {
 };
 
 export default CategoryList;
+

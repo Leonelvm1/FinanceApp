@@ -1,4 +1,3 @@
-// pages/Categories.jsx
 import CategoryList from "../components/CategoryList";
 
 const Categories = () => {
@@ -11,4 +10,3 @@ const Categories = () => {
 };
 
 export default Categories;
-
