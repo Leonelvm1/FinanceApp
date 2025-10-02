@@ -7,8 +7,8 @@ import { AuthProvider } from "./context/AuthContext";
 import { CategoryProvider } from "./context/CategoryContext";
 
 import "bootstrap/dist/css/bootstrap.min.css";
-import "bootstrap/dist/js/bootstrap.bundle.min.js"; // Needed for modals, collapse, etc.
-import "./index.css"; // <-- your new styles
+import "bootstrap/dist/js/bootstrap.bundle.min.js";
+import "./styles/index.css"
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
