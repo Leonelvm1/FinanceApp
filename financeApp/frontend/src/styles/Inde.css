@@ -1,158 +1,325 @@
-/* Palette (edit if you want) */
+/* =========================
+   Color palette & variables
+   ========================= */
 :root{
-  --primary: #22577A;        /* deep teal */
-  --primary-600: #1b4860;
-  --accent: #FFB703;         /* warm yellow */
-  --bg-1: #F6FBFF;           /* pale sky */
-  --bg-2: #E8F3F8;           /* soft blue */
-  --card-bg: rgba(255,255,255,0.92);
+  --primary: #2ea69a;        /* pastel teal */
+  --primary-600: #1f8a78;
+  --accent: #ffd166;         /* warm accent */
+  --bg-1: #e8faf6;           /* pale mint */
+  --bg-2: #f0fbff;           /* soft sky */
+  --card-bg: rgba(255,255,255,0.95);
   --muted: #6b7280;
-  --input-border: rgba(34,87,122,0.14);
-  --danger: #e63946;
-  --glass-shadow: 0 8px 30px rgba(34,87,122,0.08);
+  --input-border: rgba(46,166,154,0.14);
+  --danger: #ef476f;
+  --glass-shadow: 0 10px 30px rgba(46,166,154,0.08);
+  --surface: #ffffffee;
+  --table-row-hover: rgba(34,87,122,0.03);
 }
 
-/* Page background */
+/* =========================
+   Global page background & typography
+   ========================= */
+* { box-sizing: border-box; }
+
+html, body, #root {
+  height: 100%;
+}
+
 body {
+  margin: 0;
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  color: #0f2b2a;
   background: linear-gradient(135deg, var(--bg-1) 0%, var(--bg-2) 100%);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  color: #13293d;
   min-height: 100vh;
 }
 
-/* Make bootstrap cards slightly lifted and consistent */
+/* =========================
+   Cards & surfaces
+   ========================= */
 .card {
   background: var(--card-bg);
   border: none;
   border-radius: 12px;
   box-shadow: var(--glass-shadow);
+  padding: 1rem;
 }
 
-/* Home hero card specifics */
-.home-hero {
-  background: linear-gradient(135deg, rgba(34,87,122,0.06), rgba(255,183,3,0.03));
-  border-radius: 14px;
-  padding: 1.25rem;
+.container, .main-content {
+  padding-top: 1.5rem;
+  padding-bottom: 2rem;
 }
 
-/* Auth wrapper - center forms nicely */
-.auth-wrapper {
+/* =========================
+   Auth pages: login / signup
+   ========================= */
+.auth-wrapper,
+.auth-container {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 2rem;
-  background: linear-gradient(180deg, rgba(255,255,255,0.0), rgba(255,255,255,0.02));
 }
 
-/* Auth card with subtle accent and border */
+/* auth-card already used by your components */
 .auth-card {
   width: 100%;
   max-width: 520px;
-  border-radius: 12px;
-  overflow: hidden;
-  position: relative;
-  padding: 1.25rem;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,255,255,0.9));
+  box-shadow: 0 10px 40px rgba(16,72,67,0.08);
+  padding: 1.75rem;
+  transition: transform .15s ease, box-shadow .15s ease;
 }
 
-/* Form labels and small text */
-.form-label {
-  font-weight: 600;
-  color: rgba(19,41,61,0.85);
+.auth-card:hover {
+  transform: translateY(-4px);
 }
 
-/* Inputs: more contrast, subtle border, nicer focus */
-.form-control {
-  background: #fff;
-  border: 1px solid var(--input-border);
+/* Title center and spacing */
+.auth-card h2 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #0d3f3c;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* Form inputs and selects */
+.form-control, .form-select, input[type="text"], input[type="password"], input[type="number"], input[type="date"] {
+  width: 100%;
+  display: block;
   padding: 0.6rem 0.75rem;
-  border-radius: 8px;
-  transition: box-shadow .18s ease, border-color .18s ease;
-  color: #13293d;
+  border-radius: 10px;
+  border: 1px solid var(--input-border);
+  background: #ffffff;
+  transition: box-shadow .16s ease, border-color .16s ease, transform .12s ease;
+  color: #0b2b2a;
 }
 
-.form-control::placeholder {
-  color: #97a6b2;
+.form-control::placeholder,
+.form-select::placeholder {
+  color: #9fbfb7;
 }
 
-.form-control:focus {
+.form-control:focus, .form-select:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 6px 18px rgba(34,87,122,0.12);
+  box-shadow: 0 8px 24px rgba(46,166,154,0.08);
+  transform: translateY(-1px);
 }
 
-/* Buttons - primary and outline variants */
+/* Form labels */
+.form-label, label {
+  display: block;
+  margin-bottom: 0.4rem;
+  color: #114f4b;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+/* Buttons */
 .btn-primary {
   background-color: var(--primary);
   border-color: var(--primary);
-  color: white;
-  box-shadow: 0 6px 18px rgba(34,87,122,0.12);
-  border-radius: 8px;
-  padding: 0.48rem 0.9rem;
-  font-weight: 600;
+  color: #fff;
+  border-radius: 10px;
+  padding: 0.6rem 0.9rem;
+  font-weight: 700;
+  box-shadow: 0 8px 20px rgba(34,87,122,0.06);
 }
 
 .btn-primary:hover, .btn-primary:focus {
   background-color: var(--primary-600);
   border-color: var(--primary-600);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
 }
 
 .btn-outline-primary {
+  border: 1px solid rgba(34,87,122,0.08);
   color: var(--primary);
-  border: 1px solid rgba(34,87,122,0.12);
   background: transparent;
-  border-radius: 8px;
-  padding: 0.46rem 0.85rem;
-  font-weight: 600;
+  border-radius: 10px;
+  padding: 0.56rem 0.85rem;
 }
 
-.btn-outline-primary:hover {
-  background: var(--primary);
+.btn-danger, .btn.btn-danger {
+  background: var(--danger);
   color: white;
-  border-color: var(--primary);
+  border-radius: 10px;
+  padding: 0.6rem;
+  font-weight: 700;
 }
 
-/* Small badges for category labels */
-.badge-category {
-  background: rgba(34,87,122,0.08);
-  color: var(--primary);
-  font-weight: 600;
-  border-radius: 999px;
-  padding: 0.2rem 0.5rem;
-  font-size: 0.8rem;
-}
-
-/* Cards inside dashboard (summary) */
+/* =========================
+   Dashboard summary cards
+   ========================= */
 .summary-card {
   border-radius: 12px;
   padding: 1rem;
   min-height: 110px;
+  color: white;
 }
 
-/* Table/rows padding and hover */
-.table > :not(caption) > * > * {
-  padding: 0.85rem 0.75rem;
+.card.text-bg-success { background: linear-gradient(135deg, #2fb98a, #2ea69a); }
+.card.text-bg-danger  { background: linear-gradient(135deg, #ff6b6b, #ef476f); }
+.card.text-bg-info    { background: linear-gradient(135deg, #50b5ff, #4f9ffb); }
+
+.card .card-body h5 { color: rgba(255,255,255,0.95); font-weight: 700; margin-bottom: .4rem; }
+.card .card-body p.fs-4 { color: white; margin: 0; font-weight: 700; }
+
+/* =========================
+   Tables / lists
+   ========================= */
+.table {
+  background: transparent;
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+}
+
+.table thead th {
+  background: transparent;
+  border-bottom: 2px solid rgba(11,43,42,0.06);
+  color: #08312f;
+  font-weight: 700;
+  padding: .85rem .75rem;
+}
+
+.table tbody tr {
+  transition: background .12s ease;
 }
 
 .table tbody tr:hover {
-  background: rgba(34,87,122,0.03);
+  background: rgba(16,72,67,0.03);
 }
 
-/* Responsive tweaks */
-@media (max-width: 768px) {
-  .auth-card { padding: 1rem; }
-  .home-hero .display-6 { font-size: 1.5rem; }
+/* List group items */
+.list-group-item {
+  border-radius: 10px;
+  margin-bottom: 0.4rem;
+  border: 1px solid rgba(11,43,42,0.04);
 }
 
-/* Focus visible for accessibility */
+/* Badges */
+.badge {
+  border-radius: 999px;
+  padding: 0.35rem 0.6rem;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.badge.bg-success { background: #2ea69a; color: white; }
+.badge.bg-danger  { background: #ef476f; color: white; }
+.badge.bg-secondary { background: rgba(11,43,42,0.08); color: #0b2b2a; }
+
+/* Category small label */
+.badge-category {
+  background: rgba(46,166,154,0.08);
+  color: var(--primary);
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 0.25rem 0.55rem;
+  font-size: 0.82rem;
+}
+
+/* =========================
+   Forms layout in incomes/expenses
+   ========================= */
+.row.g-2 > .col-md-4,
+.row.g-2 > .col-md-3,
+.row.g-2 > .col-md-2,
+.row.g-2 > .col-md-1 {
+  display: flex;
+  align-items: center;
+}
+
+/* Make inline form controls flush */
+.row.g-2 .form-control,
+.row.g-2 .form-select {
+  margin-bottom: 0;
+}
+
+/* smaller buttons at the end */
+.row.g-2 .btn {
+  height: 100%;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+/* =========================
+   Category list card
+   ========================= */
+.CategoryListCard, .category-card, .card.p-3 {
+  padding: 1rem;
+}
+
+.CategoryListCard h5, .card h5 {
+  color: #0b2b2a;
+  font-weight: 700;
+}
+
+/* Mark global categories slightly different */
+.list-group-item .badge.bg-primary {
+  background: linear-gradient(135deg, rgba(46,166,154,0.16), rgba(46,166,154,0.04));
+  color: var(--primary-600);
+  font-weight: 700;
+}
+
+/* =========================
+   Responsive & layout helpers
+   ========================= */
+@media (max-width: 992px) {
+  .container, .main-content { padding-left: 1rem; padding-right: 1rem; }
+  .row.g-2 { gap: 8px; }
+}
+
+/* Small screens: make table cells wrap */
+@media (max-width: 576px) {
+  .table thead { display: none; }
+  .table, .table tbody, .table tr, .table td { display: block; width: 100%; }
+  .table tr { margin-bottom: 0.75rem; }
+  .table td { text-align: right; padding-left: 50%; position: relative; }
+  .table td::before {
+    content: attr(data-label);
+    position: absolute;
+    left: 0;
+    width: 45%;
+    padding-left: .75rem;
+    font-weight: 600;
+    color: #114f4b;
+    text-align: left;
+  }
+}
+
+/* Accessibility: focus-visible */
 :focus-visible {
-  outline: 3px solid rgba(34,87,122,0.12);
-  outline-offset: 2px;
+  outline: 3px solid rgba(46,166,154,0.16);
+  outline-offset: 3px;
 }
 
-/* Utility small text color */
-.text-muted-strong {
-  color: var(--muted);
+/* Tiny utility */
+.text-muted-strong { color: var(--muted); font-size: .95rem; }
+
+/* subtle container for pages */
+.page-wrapper {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1rem;
 }
+
+/* =========================
+   Minor tweaks for bootstrap components we use
+   ========================= */
+.btn-close {
+  filter: brightness(.9);
+}
+
+/* Remove default link underline in nav */
+a.nav-link { text-decoration: none; }
+
+/* extra spacing for forms on pages */
+.mt-4 { margin-top: 1.25rem !important; }
+.mb-4 { margin-bottom: 1.25rem !important; }
