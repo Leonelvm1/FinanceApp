@@ -1,6 +1,8 @@
+// src/App.jsx
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useContext } from "react";
 import { AuthContext } from "./context/AuthContext";
+import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
@@ -14,9 +16,14 @@ const App = () => {
 
   return (
     <Routes>
+      {/* Landing */}
+      <Route path="/" element={<Home />} />
+
+      {/* Public routes */}
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
 
+      {/* Protected routes */}
       {token ? (
         <Route path="/" element={<Layout />}>
           <Route index element={<Dashboard />} />
@@ -26,7 +33,7 @@ const App = () => {
           <Route path="categories" element={<Categories />} />
         </Route>
       ) : (
-        <Route path="*" element={<Navigate to="/login" />} />
+        <Route path="*" element={<Navigate to="/" />} />
       )}
     </Routes>
   );
