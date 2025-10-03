@@ -40,7 +40,7 @@ const Home = () => {
                 className="img-fluid"
                 style={{ maxHeight: 140, opacity: 0.9 }}
               />
-              <p className="mt-3 text-muted small">Demo project — fullstack showcase</p>
+              <p className="mt-3 text-muted small">Demo project </p>
             </div>
           </div>
         </div>

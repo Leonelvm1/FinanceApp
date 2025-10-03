@@ -1,3 +1,118 @@
+/* ====== Global improvements ====== */
+:root{
+  --primary: #22577A;
+  --accent: #2ea69a; /* used for table header gradient */
+  --accent-2: #5fd2c0;
+  --income-bg: rgba(46,166,154,0.04);
+  --expense-bg: rgba(230,101,85,0.03);
+  --card-bg: rgba(255,255,255,0.92);
+}
+
+/* Ensure our rules win over bootstrap's defaults */
+.table.customized {
+  width: 100%;
+  margin-top: 1.25rem;
+  background-color: #ffffffdd;
+  border-collapse: collapse;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 6px 18px rgba(13, 54, 50, 0.06);
+  border: none;
+}
+
+/* Header gradient */
+.table.customized thead {
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  color: #fff;
+}
+
+.table.customized thead th {
+  font-weight: 700;
+  padding: 0.85rem 0.75rem;
+  text-align: left;
+  letter-spacing: 0.2px;
+}
+
+/* Cells */
+.table.customized tbody td {
+  padding: 0.85rem 0.75rem;
+  border-top: 1px solid rgba(0,0,0,0.04);
+  vertical-align: middle;
+  color: #184b48;
+}
+
+/* Row colors for incomes and expenses */
+.table.customized tbody tr.income-row {
+  background: var(--income-bg);
+}
+
+.table.customized tbody tr.expense-row {
+  background: var(--expense-bg);
+}
+
+/* Hover */
+.table.customized tbody tr:hover {
+  background: rgba(46,166,154,0.06);
+}
+
+/* Responsive: use data-label to show headings on mobile */
+.table.customized td[data-label]::before {
+  content: attr(data-label) ": ";
+  display: none;
+  font-weight: 700;
+  margin-right: 6px;
+  color: #245c58;
+}
+
+/* Buttons in table */
+.table-action-btn {
+  margin-left: 6px;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
+/* Modal overlay (simple, no bootstrap js) */
+.custom-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.custom-modal {
+  width: 100%;
+  max-width: 720px;
+  background: #fff;
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.2);
+}
+
+/* Small form tweaks */
+.form-control, .form-select {
+  border-radius: 8px;
+  border: 1px solid rgba(34,87,122,0.12);
+  padding: 0.55rem 0.75rem;
+}
+
+.btn-link.cancel {
+  color: #6b7280;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .table.customized thead { display: none; }
+  .table.customized, .table.customized tbody, .table.customized tr, .table.customized td { display: block; width: 100%; }
+  .table.customized tr { margin-bottom: 1rem; background: #ffffffdd; border-radius: 12px; padding: 0.75rem; box-shadow: 0 3px 8px rgba(0,0,0,0.04); }
+  .table.customized td { display: flex; justify-content: space-between; padding: 0.6rem 0; border: none; }
+  .table.customized td[data-label]::before { display: inline-block; }
+}
+
+
 /* ====== Global ====== */
 body {
   font-family: 'Inter', sans-serif;
@@ -368,4 +483,66 @@ h3 {
     font-weight: 600;
     color: #245c58;
   }
+}
+
+/* ===== Table pastel styles ===== */
+.table {
+  width: 100%;
+  margin-top: 1.25rem;
+  background-color: #ffffffdd;
+  border-collapse: collapse;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 6px 18px rgba(13, 54, 50, 0.06);
+}
+
+.table thead {
+  background: linear-gradient(90deg, #2ea69a, #5fd2c0);
+  color: #fff;
+}
+
+.table thead th {
+  font-weight: 700;
+  padding: 0.9rem 0.75rem;
+  text-align: left;
+}
+
+.table tbody td {
+  padding: 0.85rem 0.75rem;
+  border-top: 1px solid rgba(0,0,0,0.04);
+  vertical-align: middle;
+  color: #184b48;
+}
+
+.table tbody tr:nth-child(even) {
+  background: rgba(46,166,154,0.03);
+}
+
+.table tbody tr:hover {
+  background: rgba(46,166,154,0.06);
+}
+
+/* small utility for data-label responsive layout */
+.table td[data-label]::before {
+  content: attr(data-label) ": ";
+  display: none;
+  font-weight: 700;
+  margin-right: 6px;
+  color: #245c58;
+}
+
+/* badges (reuse bootstrap classes but nicer) */
+.badge {
+  border-radius: 8px;
+  padding: 0.4rem 0.6rem;
+  font-weight: 600;
+}
+
+/* small responsive tweaks - use the data-label to show column names on mobile */
+@media (max-width: 768px) {
+  .table thead { display: none; }
+  .table, .table tbody, .table tr, .table td { display: block; width: 100%; }
+  .table tr { margin-bottom: 1rem; background: #ffffffdd; border-radius: 12px; padding: 0.75rem; box-shadow: 0 3px 8px rgba(0,0,0,0.04); }
+  .table td { display: flex; justify-content: space-between; padding: 0.6rem 0; border: none; }
+  .table td[data-label]::before { display: inline-block; }
 }
