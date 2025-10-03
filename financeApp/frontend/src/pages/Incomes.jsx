@@ -1,11 +1,14 @@
+// src/pages/Incomes.jsx
 import { useEffect, useState, useContext } from "react";
 import { getIncomes, deleteIncome } from "../services/api";
 import { CategoryContext } from "../context/CategoryContext";
+import { AuthContext } from "../context/AuthContext";
 import IncomeForm from "../components/IncomeForm";
 
 const Incomes = () => {
   const [incomes, setIncomes] = useState([]);
   const { categories } = useContext(CategoryContext);
+  const { refreshUser } = useContext(AuthContext);
   const [editing, setEditing] = useState(null);
 
   const fetchIncomes = async () => {
@@ -17,7 +20,9 @@ const Incomes = () => {
     }
   };
 
-  useEffect(() => { fetchIncomes(); }, []);
+  useEffect(() => { 
+    fetchIncomes(); 
+  }, []);
 
   const getCategoryName = (id) => categories.find((c) => c.id === id)?.name || "Uncategorized";
   const currency = (v) => new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 2 }).format(v);
@@ -27,6 +32,7 @@ const Incomes = () => {
     try {
       await deleteIncome(id);
       await fetchIncomes();
+      if (refreshUser) await refreshUser();
     } catch (err) {
       console.error("Delete income failed", err);
       alert("Delete failed");
@@ -34,12 +40,15 @@ const Incomes = () => {
   };
 
   return (
-    <div>
+    <div className="container">
       <h2>Incomes</h2>
 
       {/* Create form (no modal) */}
       <div className="mb-3">
-        <IncomeForm onSaved={fetchIncomes} />
+        <IncomeForm onSaved={() => { 
+          fetchIncomes(); 
+          if (refreshUser) refreshUser();
+        }} />
       </div>
 
       <table className="table customized">
@@ -47,8 +56,8 @@ const Incomes = () => {
           <tr><th>Description</th><th>Amount</th><th>Category</th><th>Date</th><th>Actions</th></tr>
         </thead>
         <tbody>
-          {incomes.map((inc) => (
-            <tr key={inc.id} className="income-row">
+          {incomes.map((inc, idx) => (
+            <tr key={inc.id} className={`income-row ${idx % 2 === 0 ? "row-even" : "row-odd"}`}>
               <td data-label="Description">{inc.description}</td>
               <td data-label="Amount">{currency(inc.amount || 0)}</td>
               <td data-label="Category">{inc.category_name || getCategoryName(inc.category_id)}</td>
@@ -67,7 +76,15 @@ const Incomes = () => {
         <div className="custom-modal-backdrop" onClick={() => setEditing(null)}>
           <div className="custom-modal" onClick={(e) => e.stopPropagation()}>
             <h5>Edit Income</h5>
-            <IncomeForm initialData={editing} onSaved={() => { setEditing(null); fetchIncomes(); }} onCancel={() => setEditing(null)} />
+            <IncomeForm 
+              initialData={editing} 
+              onSaved={() => { 
+                setEditing(null); 
+                fetchIncomes(); 
+                if (refreshUser) refreshUser();
+              }} 
+              onCancel={() => setEditing(null)} 
+            />
           </div>
         </div>
       )}
