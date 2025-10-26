@@ -1,3 +1,4 @@
+// src/pages/Login.jsx
 import { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
@@ -17,8 +18,6 @@ const Login = () => {
     setLoading(true);
     try {
       await login(username, password);
-      // After successful login the token is saved in localStorage
-      // and AuthContext will refresh the user. Navigate to dashboard:
       navigate("/dashboard");
     } catch (err) {
       console.error("[Login] Error:", err);

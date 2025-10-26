@@ -12,7 +12,7 @@ import Categories from "./pages/Categories";
 import Layout from "./components/Layout";
 
 const App = () => {
-  const { token } = useContext(AuthContext);
+  const { user } = useContext(AuthContext); // guard with user (server-validated)
 
   return (
     <Routes>
@@ -24,7 +24,7 @@ const App = () => {
       <Route path="/signup" element={<Signup />} />
 
       {/* Protected routes */}
-      {token ? (
+      {user ? (
         <Route path="/" element={<Layout />}>
           <Route index element={<Dashboard />} />
           <Route path="dashboard" element={<Dashboard />} />

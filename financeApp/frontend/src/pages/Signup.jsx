@@ -2,6 +2,7 @@
 import { useState, useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
+import { validatePassword } from "../utils/validatePassword";
 
 const Signup = () => {
   const { signup, token } = useContext(AuthContext);
@@ -21,8 +22,15 @@ const Signup = () => {
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
+  const pw = validatePassword(form.password);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!pw.valid) {
+      alert("Please choose a stronger password according to the rules below.");
+      return;
+    }
+
     setLoading(true);
     try {
       await signup(form);
@@ -65,7 +73,28 @@ const Signup = () => {
 
           <div className="mb-3">
             <label className="form-label">Password</label>
-            <input name="password" type="password" className="form-control" onChange={handleChange} required />
+            <input
+              name="password"
+              type="password"
+              className="form-control"
+              value={form.password}
+              onChange={handleChange}
+              required
+              aria-describedby="passwordHelp"
+            />
+            <small id="passwordHelp" className="form-text text-muted">
+              Password must be at least 8 chars and include uppercase, lowercase, number & symbol.
+            </small>
+
+            <div className="mt-2">
+              <ul className="list-unstyled mb-0" style={{ fontSize: 14 }}>
+                <li style={{ color: pw.reasons.length ? "green" : "#a0a0a0" }}>• Minimum 8 characters</li>
+                <li style={{ color: pw.reasons.hasUpper ? "green" : "#a0a0a0" }}>• Uppercase letter</li>
+                <li style={{ color: pw.reasons.hasLower ? "green" : "#a0a0a0" }}>• Lowercase letter</li>
+                <li style={{ color: pw.reasons.hasNumber ? "green" : "#a0a0a0" }}>• Number</li>
+                <li style={{ color: pw.reasons.hasSymbol ? "green" : "#a0a0a0" }}>• Symbol (e.g. !@#$%)</li>
+              </ul>
+            </div>
           </div>
 
           <button className="btn btn-success w-100" type="submit" disabled={loading}>

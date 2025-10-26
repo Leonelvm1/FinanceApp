@@ -1,9 +1,27 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+# app/api/routes/endpoints.py
+"""
+Main API endpoints for the FinanceApp.
+
+Changes made:
+- Login now sets an HttpOnly cookie `access_token` as well as returning the token in the response
+  (backwards-compatible).
+- Added logout to clear the cookie.
+- get_current_user accepts token from Authorization header (oauth2), or cookie named `access_token`.
+- get_categories supports both authenticated and anonymous callers by attempting token extraction.
+
+Make sure to set environment variables:
+- SECRET_KEY
+- ALGORITHM (optional, defaults to HS256)
+- ACCESS_TOKEN_EXPIRE_MINUTES (optional)
+- COOKIE_SECURE = "True" for production HTTPS; "False" for local dev (default).
+"""
+
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Request, Cookie
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from sqlalchemy.orm import Session
 from datetime import timedelta, datetime, date
 from jose import JWTError, jwt
-from typing import List
+from typing import List, Optional
 import os
 from dotenv import load_dotenv
 
@@ -18,11 +36,13 @@ from app.api.DTO.dtos import (
 from app.utils.security import hash_password, verify_password
 
 load_dotenv()
-SECRET_KEY = os.getenv("SECRET_KEY")
+SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+COOKIE_SECURE = os.getenv("COOKIE_SECURE", "False").lower() in ("1", "true", "yes")
 
 routes = APIRouter()
+# oauth2_scheme will attempt to find Authorization: Bearer <token>
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login", auto_error=False)
 
 def get_db():
@@ -38,19 +58,57 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+def _extract_token_from_request(request: Request, oauth_token: Optional[str] = None) -> Optional[str]:
+    """
+    Try to get a token from:
+      1) oauth_token (provided by OAuth2PasswordBearer if Authorization header present)
+      2) Authorization header (safer check, but oauth_token usually already covers it)
+      3) Cookie 'access_token'
+    Returns token string or None if not present.
+    """
+    # 1) token from dependency (Authorization header parsed by oauth2_scheme)
+    if oauth_token:
+        return oauth_token
+
+    # 2) raw Authorization header (defensive)
+    auth = request.headers.get("Authorization")
+    if auth and auth.lower().startswith("bearer "):
+        return auth.split(" ", 1)[1].strip()
+
+    # 3) cookie
+    cookie = request.cookies.get("access_token")
+    if cookie:
+        return cookie
+
+    return None
+
+def get_current_user(token: str = Depends(oauth2_scheme), request: Request = None, db: Session = Depends(get_db)):
+    """
+    Dependency that returns the current authenticated user or raises 401.
+    It accepts token from Authorization header (Bearer) or cookie named 'access_token'.
+    """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Invalid token",
+        detail="Invalid or missing authentication credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
+    if request is None:
+        # FastAPI will normally supply request - ensure safe fallback
+        raise credentials_exception
+
+    token_to_use = _extract_token_from_request(request, token)
+    if not token_to_use:
+        raise credentials_exception
+
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token_to_use, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
     except JWTError:
         raise credentials_exception
+
     user = db.query(User).filter(User.full_name == username).first()
     if user is None:
         raise credentials_exception
@@ -127,7 +185,11 @@ def signup(user: UserDTOPetition, db: Session = Depends(get_db)):
     return read_users_me(current_user=db_user, db=db)
 
 @routes.post("/login", response_model=TokenDTO)
-def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+def login(response: Response, form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    """
+    Login endpoint. Expects form data: username & password (OAuth2PasswordRequestForm).
+    Sets an HttpOnly cookie 'access_token'. Also returns the token in response for backward compatibility.
+    """
     user = db.query(User).filter(User.full_name == form_data.username).first()
     if not user or not verify_password(form_data.password, user.password):
         raise HTTPException(
@@ -139,7 +201,28 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         data={"sub": user.full_name},
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     )
+
+    # Set cookie: HttpOnly so JavaScript cannot access it. Use samesite=lax for CSRF balance.
+    # Use secure=True in production (HTTPS). Control with COOKIE_SECURE env var.
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        secure=COOKIE_SECURE,
+        samesite="lax",
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60
+    )
+
+    # Return token as fallback for clients that still use Authorization header
     return {"access_token": access_token, "token_type": "bearer"}
+
+@routes.post("/logout")
+def logout(response: Response):
+    """
+    Logout endpoint: clear cookie and return success.
+    """
+    response.delete_cookie("access_token")
+    return {"message": "logged out"}
 
 @routes.get("/users/me", response_model=UserDTOResponse)
 def read_users_me(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -172,7 +255,6 @@ def create_expense(expense: ExpenseDTOPetition, current_user: User = Depends(get
     cat = db.query(Category).filter(Category.id == expense.category_id).first()
     if not cat:
         raise HTTPException(status_code=400, detail="Category not found")
-    # optional: ensure cat.user_id == current_user.id or cat.is_global
     db_expense = Expense(
         description=expense.description,
         amount=expense.amount,
@@ -279,13 +361,14 @@ def create_category(category: CategoryDTOPetition, current_user: User = Depends(
     return category_to_response(db_category)
 
 @routes.get("/categories", response_model=List[CategoryDTOResponse])
-def get_categories(token: str | None = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+def get_categories(request: Request, db: Session = Depends(get_db)):
     """
     Return:
-      - If token provided and valid -> categories for that user + global ones
-      - If no token provided or invalid -> only global categories
+      - If Authorization Bearer token or cookie provided and valid -> categories for that user + global ones
+      - If no valid token provided -> only global categories
     """
     user = None
+    token = _extract_token_from_request(request, None)
     if token:
         try:
             payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -293,7 +376,6 @@ def get_categories(token: str | None = Depends(oauth2_scheme), db: Session = Dep
             if username:
                 user = db.query(User).filter(User.full_name == username).first()
         except JWTError:
-            # invalid token -> ignore and return global only
             user = None
 
     if user:

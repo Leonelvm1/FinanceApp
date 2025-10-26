@@ -13,7 +13,6 @@
 
 /* ====== RESET COMPLETO PARA BOOTSTRAP TABLES ====== */
 table.table.customized {
-  /* Reset todas las variables CSS de Bootstrap */
   --bs-table-bg: transparent !important;
   --bs-table-accent-bg: transparent !important;
   --bs-table-striped-bg: transparent !important;
@@ -25,7 +24,6 @@ table.table.customized {
   border-color: transparent !important;
 }
 
-/* Reset específico para filas y celdas */
 table.table.customized > tbody > tr {
   background-color: inherit !important;
   --bs-table-accent-bg: transparent !important;
@@ -37,7 +35,6 @@ table.table.customized > tbody > tr > td {
   --bs-table-bg: transparent !important;
 }
 
-/* Anular el box-shadow de Bootstrap que bloquea los fondos */
 .table.customized > :not(caption) > * > * {
   box-shadow: none !important;
   background-color: inherit !important;
@@ -186,8 +183,6 @@ h2 { font-size: 1.5rem; }
 h3 { font-size: 1.25rem; }
 
 /* ====== TABLE STYLES - REESCRITOS COMPLETAMENTE ====== */
-
-/* Base table styles */
 .table.customized {
   width: 100%;
   margin-top: 1rem;
@@ -199,7 +194,6 @@ h3 { font-size: 1.25rem; }
   border: none;
 }
 
-/* Header gradient */
 .table.customized thead {
   background: linear-gradient(90deg, var(--accent), var(--accent-2));
   color: #fff;
@@ -213,7 +207,6 @@ h3 { font-size: 1.25rem; }
   border: none;
 }
 
-/* Row base */
 .table.customized tbody td {
   padding: 0.85rem 0.75rem;
   border-top: 1px solid rgba(0,0,0,0.04);
@@ -222,16 +215,13 @@ h3 { font-size: 1.25rem; }
   border: none;
 }
 
-/* ====== ZEBRA PATTERN - VERSIÓN SIMPLIFICADA Y FUNCIONAL ====== */
-
-/* Base zebra - usando border-left en lugar de box-shadow */
+/* ====== ZEBRA PATTERN ====== */
 .table.customized tbody tr {
   background: transparent;
   border-left: 4px solid transparent;
   transition: all 0.2s ease;
 }
 
-/* Zebra pattern */
 .table.customized tbody tr:nth-child(odd) {
   background-color: rgba(46,166,154,0.04) !important;
 }
@@ -240,7 +230,6 @@ h3 { font-size: 1.25rem; }
   background-color: rgba(255,255,255,0.9) !important;
 }
 
-/* Clases explícitas */
 .table.customized tbody tr.row-odd {
   background-color: rgba(46,166,154,0.04) !important;
 }
@@ -249,7 +238,7 @@ h3 { font-size: 1.25rem; }
   background-color: rgba(255,255,255,0.9) !important;
 }
 
-/* Income rows - borde verde */
+/* Income rows */
 .table.customized tbody tr.income-row {
   border-left-color: var(--income-color) !important;
 }
@@ -262,7 +251,7 @@ h3 { font-size: 1.25rem; }
   background-color: rgba(46,166,154,0.03) !important;
 }
 
-/* Expense rows - borde rojo */
+/* Expense rows */
 .table.customized tbody tr.expense-row {
   border-left-color: var(--expense-color) !important;
 }
@@ -275,7 +264,7 @@ h3 { font-size: 1.25rem; }
   background-color: rgba(230,101,85,0.03) !important;
 }
 
-/* Category rows - borde gris */
+/* Category rows */
 .table.customized tbody tr.category-row {
   border-left-color: var(--category-color) !important;
 }
@@ -306,7 +295,6 @@ h3 { font-size: 1.25rem; }
   background-color: rgba(34,87,122,0.07) !important;
 }
 
-/* Actions column */
 .table-action-btn {
   margin-left: 6px;
   padding: 0.28rem 0.55rem;
@@ -578,4 +566,18 @@ h3 { font-size: 1.25rem; }
   .navbar-collapse.collapse.show {
     display: block !important;
   }
+}
+
+/* ====== SMALL ANIMATIONS (Framer Motion complements these) ====== */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.custom-modal {
+  animation: fadeInUp 240ms ease-out;
+}
+
+.table.customized tbody tr {
+  animation: fadeInUp 220ms ease-out;
 }
