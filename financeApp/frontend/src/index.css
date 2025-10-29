@@ -581,3 +581,146 @@ h3 { font-size: 1.25rem; }
 .table.customized tbody tr {
   animation: fadeInUp 220ms ease-out;
 }
+
+/* ====== Dashboard animated stats/styles ====== */
+.stats-row {
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+/* stat chip base */
+.stat-chip {
+  display: flex;
+  flex-direction: column;
+  min-width: 170px;
+  max-width: 320px;
+  padding: 0.6rem 0.9rem;
+  border-radius: 12px;
+  color: white;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+  transition: transform 220ms ease, box-shadow 220ms ease;
+}
+
+/* labels inside chip */
+.stat-chip .stat-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  opacity: 0.95;
+  margin-bottom: 0.18rem;
+  color: rgba(255,255,255,0.95);
+}
+
+/* numeric/monetary value */
+.stat-chip .stat-value {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+}
+
+/* colors (use existing classes to manage color background) */
+.stat-chip.bg-success { background: linear-gradient(180deg, #2ea69a, #1e856f); }
+.stat-chip.bg-danger { background: linear-gradient(180deg, #e66155, #c64236); }
+.stat-chip.bg-info { background: linear-gradient(180deg, #6ac6e7, #2a8fb7); color: #023a4b; }
+.stat-chip.bg-warning { background: linear-gradient(180deg, #ffd97a, #ffb84d); color: #1d4d4f; }
+
+/* hover micro-effect */
+.stat-chip:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 14px 30px rgba(0,0,0,0.12);
+}
+
+/* entries counters & filter info */
+.entries-row {
+  display: flex;
+  gap: 1rem;
+  align-items: baseline;
+}
+
+.entries-count {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #3a5a58 !important; /* slightly darker for legibility */
+}
+
+.filter-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-left: 0.4rem;
+  min-width: 220px;
+  color: #395f5f;
+}
+
+/* responsive adjustments */
+@media (max-width: 900px) {
+  .stat-chip { min-width: 140px; }
+  .filter-info { min-width: 100%; margin-top: 6px; }
+  .stats-row { gap: 0.6rem; }
+}
+
+@media (max-width: 520px) {
+  .stat-chip { min-width: 48%; box-sizing: border-box; }
+  .entries-row { flex-direction: column; gap: 6px; align-items: flex-start; }
+  .filter-info { padding-left: 0; }
+}
+
+/* small animation fallback for non-JS or micro polish */
+.stat-chip, .entries-count {
+  will-change: transform, opacity;
+}
+
+/* ensure small text used elsewhere isn't tiny: override only the dashboard entries */
+.container .entries-count.text-muted {
+  opacity: 0.9;
+}
+
+/* ====== Dashboard: clean stats + animated counters ====== */
+.stats-row {
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+/* stat chip base */
+.stat-chip {
+  display: flex;
+  flex-direction: column;
+  min-width: 170px;
+  max-width: 320px;
+  padding: 0.6rem 0.9rem;
+  border-radius: 12px;
+  color: white;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+  transition: transform 220ms ease, box-shadow 220ms ease;
+}
+
+/* label & value */
+.stat-chip .stat-label { font-size: 0.8rem; font-weight: 600; opacity: 0.95; margin-bottom: 0.18rem; }
+.stat-chip .stat-value { font-size: 1.15rem; font-weight: 800; letter-spacing: 0.2px; }
+
+/* chip color variants */
+.stat-chip.bg-success { background: linear-gradient(180deg, #2ea69a, #1e856f); }
+.stat-chip.bg-danger  { background: linear-gradient(180deg, #e66155, #c64236); }
+.stat-chip.bg-info    { background: linear-gradient(180deg, #6ac6e7, #2a8fb7); color: #023a4b; }
+.stat-chip.bg-warning { background: linear-gradient(180deg, #ffd97a, #ffb84d); color: #1d4d4f; }
+
+.stat-chip:hover { transform: translateY(-6px); box-shadow: 0 14px 30px rgba(0,0,0,0.12); }
+
+/* entries counters */
+.entries-count {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #3a5a58 !important;
+}
+
+/* responsive adjustments */
+@media (max-width: 900px) {
+  .stat-chip { min-width: 140px; }
+  .stats-row { gap: 0.6rem; }
+}
+
+@media (max-width: 520px) {
+  .stat-chip { min-width: 48%; box-sizing: border-box; }
+  .entries-count { font-size: 0.9rem; }
+}

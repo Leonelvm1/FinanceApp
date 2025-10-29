@@ -1,11 +1,11 @@
 // src/context/AuthContext.jsx
 /**
  * AuthContext - cookie-first approach (HttpOnly cookie)
- * - login() posts credentials to /login. Server sets HttpOnly cookie.
- * - refreshUser() calls /users/me which uses cookie OR Authorization header.
+ * - login() posts credentials as form-encoded to /login. Server sets HttpOnly cookie.
+ * - refreshUser() calls /users/me which is validated server-side using the cookie.
  * - logout() calls /logout endpoint to clear cookie and clears client state.
  *
- * Keep token in localStorage only as fallback while migrating clients.
+ * Keep a token in localStorage only as a fallback while migrating (optional).
  */
 
 import { createContext, useEffect, useState } from "react";
@@ -18,7 +18,7 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem("token") || null);
   const [loading, setLoading] = useState(false);
 
-  // Refresh user data (server-side validated via cookie or Authorization header)
+  // Refresh user data (server-side validated via cookie)
   const refreshUser = async () => {
     setLoading(true);
     try {
@@ -37,6 +37,7 @@ export const AuthProvider = ({ children }) => {
 
   // Login: expect server to set HttpOnly cookie; also keep access_token fallback.
   const login = async (username, password) => {
+    setLoading(true);
     try {
       const form = new URLSearchParams();
       form.append("username", username);
@@ -54,6 +55,8 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       console.error("[AuthContext] Login error", err);
       throw err;
+    } finally {
+      setLoading(false);
     }
   };
 

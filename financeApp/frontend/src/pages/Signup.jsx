@@ -1,4 +1,14 @@
 // src/pages/Signup.jsx
+/**
+ * Signup page with confirm-password and client-side validation.
+ * - Uses validatePassword helper to show password strength rules.
+ * - Prevents submission if password and confirmPassword don't match.
+ * - Submits the full DTO required by backend: full_name, birth_date, location, savings_goal, password
+ *
+ * Notes:
+ * - Fields names match the backend UserDTOPetition Pydantic model.
+ */
+
 import { useState, useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
@@ -14,7 +24,9 @@ const Signup = () => {
     savings_goal: 0,
     password: ""
   });
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
     if (token) navigate("/dashboard");
@@ -23,22 +35,32 @@ const Signup = () => {
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const pw = validatePassword(form.password);
+  const passwordsMatch = form.password === confirmPassword;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrorMsg("");
+
     if (!pw.valid) {
-      alert("Please choose a stronger password according to the rules below.");
+      setErrorMsg("Please choose a stronger password according to the rules.");
+      return;
+    }
+
+    if (!passwordsMatch) {
+      setErrorMsg("Passwords do not match. Please confirm your password.");
       return;
     }
 
     setLoading(true);
     try {
+      // Backend expects JSON body with fields defined in UserDTOPetition
       await signup(form);
       alert("Account created. Please sign in.");
       navigate("/login");
     } catch (err) {
       console.error("Signup error:", err);
-      alert("Failed to create account.");
+      const msg = err?.response?.data?.detail || "Failed to create account.";
+      setErrorMsg(String(msg));
     } finally {
       setLoading(false);
     }
@@ -48,26 +70,64 @@ const Signup = () => {
     <div className="d-flex vh-100 align-items-center justify-content-center">
       <div className="card shadow-sm p-4" style={{ width: 520 }}>
         <h3 className="mb-3">Create an account</h3>
+
+        {errorMsg && (
+          <div className="alert alert-danger" role="alert">
+            {errorMsg}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit}>
           <div className="row">
             <div className="col-md-6 mb-3">
               <label className="form-label">Full name</label>
-              <input name="full_name" className="form-control" onChange={handleChange} required />
+              <input
+                name="full_name"
+                className="form-control"
+                value={form.full_name}
+                onChange={handleChange}
+                required
+                autoComplete="name"
+              />
             </div>
             <div className="col-md-6 mb-3">
               <label className="form-label">Birth date</label>
-              <input name="birth_date" type="date" className="form-control" onChange={handleChange} required />
+              <input
+                name="birth_date"
+                type="date"
+                className="form-control"
+                value={form.birth_date}
+                onChange={handleChange}
+                required
+                autoComplete="bday"
+              />
             </div>
           </div>
 
           <div className="row">
             <div className="col-md-6 mb-3">
               <label className="form-label">Location</label>
-              <input name="location" className="form-control" onChange={handleChange} required />
+              <input
+                name="location"
+                className="form-control"
+                value={form.location}
+                onChange={handleChange}
+                required
+                autoComplete="address-level2"
+              />
             </div>
             <div className="col-md-6 mb-3">
               <label className="form-label">Savings goal</label>
-              <input name="savings_goal" type="number" className="form-control" onChange={handleChange} required />
+              <input
+                name="savings_goal"
+                type="number"
+                className="form-control"
+                value={form.savings_goal}
+                onChange={handleChange}
+                required
+                min="0"
+                step="0.01"
+              />
             </div>
           </div>
 
@@ -81,9 +141,10 @@ const Signup = () => {
               onChange={handleChange}
               required
               aria-describedby="passwordHelp"
+              autoComplete="new-password"
             />
             <small id="passwordHelp" className="form-text text-muted">
-              Password must be at least 8 chars and include uppercase, lowercase, number & symbol.
+              Password must be at least 8 characters and include uppercase, lowercase, number & symbol.
             </small>
 
             <div className="mt-2">
@@ -95,6 +156,22 @@ const Signup = () => {
                 <li style={{ color: pw.reasons.hasSymbol ? "green" : "#a0a0a0" }}>• Symbol (e.g. !@#$%)</li>
               </ul>
             </div>
+          </div>
+
+          <div className="mb-3">
+            <label className="form-label">Confirm Password</label>
+            <input
+              name="confirmPassword"
+              type="password"
+              className="form-control"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              autoComplete="new-password"
+            />
+            {!passwordsMatch && confirmPassword.length > 0 && (
+              <small className="text-danger">Passwords do not match.</small>
+            )}
           </div>
 
           <button className="btn btn-success w-100" type="submit" disabled={loading}>
