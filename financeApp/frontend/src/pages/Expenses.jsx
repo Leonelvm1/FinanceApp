@@ -1,4 +1,15 @@
 // src/pages/Expenses.jsx
+/**
+ * Expenses page
+ *
+ * Purpose:
+ *  - List all expenses for the user and allow create/edit/delete.
+ *  - Fetches expenses independently using GET /expenses (in addition to the dashboard).
+ *
+ * Notes:
+ *  - This page uses refreshUser() to keep aggregates up-to-date after CRUD operations.
+ */
+
 import { useEffect, useState, useContext } from "react";
 import { getExpenses, deleteExpense } from "../services/api";
 import { CategoryContext } from "../context/CategoryContext";

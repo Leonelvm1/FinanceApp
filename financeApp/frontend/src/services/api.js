@@ -1,24 +1,37 @@
 // src/services/api.js
 /**
- * Axios instance configured for cookie-based auth (HttpOnly cookie 'access_token').
+ * Axios API instance (cookie-first)
  *
- * - withCredentials: true ensures the browser sends cookies to the backend.
- * - This version intentionally does NOT attach Authorization header from localStorage.
- *   The backend is configured to read the 'access_token' cookie only.
+ * Purpose:
+ *  - Centralized API client for the frontend.
+ *  - withCredentials: true ensures HttpOnly cookies are sent/received.
  *
- * All API helper functions are exported for convenience.
+ * Usage:
+ *  - Import the default `api` for custom requests.
+ *  - Use the convenience functions below for standard endpoints.
+ *
+ * Environment:
+ *  - Use VITE_API_URL to change the backend base URL in production/deploys.
+ *  - For dev you can also use a Vite proxy to avoid CORS.
  */
 
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://127.0.0.1:8000",
-  withCredentials: true, // send cookies on cross-site requests
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000",
+  withCredentials: true,
+  headers: {
+    // Sensible default — axios sets content-type automatically for URLSearchParams
+    "Accept": "application/json",
+  },
 });
+
+// Minimal interceptor; keep it light. Expand to add auth/refresh logic if needed.
+api.interceptors.request.use((cfg) => cfg, (err) => Promise.reject(err));
 
 export default api;
 
-// --- Convenience exports (same signatures used by the app) ---
+// Convenience exports for endpoints used by the UI
 export const getIncomes = () => api.get("/incomes");
 export const createIncome = (data) => api.post("/incomes", data);
 export const updateIncome = (id, data) => api.put(`/incomes/${id}`, data);

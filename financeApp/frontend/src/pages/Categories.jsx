@@ -1,4 +1,12 @@
 // src/pages/Categories.jsx
+/**
+ * Categories page
+ *
+ * Purpose:
+ *  - Page wrapper for category management UI (CategoryList).
+ *  - Kept intentionally minimal — the CategoryList contains the core logic/UI.
+ */
+
 import CategoryList from "../components/CategoryList";
 
 const Categories = () => {

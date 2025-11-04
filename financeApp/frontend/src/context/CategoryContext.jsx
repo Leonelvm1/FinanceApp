@@ -1,4 +1,20 @@
 // src/context/CategoryContext.jsx
+/**
+ * CategoryContext
+ *
+ * Purpose:
+ *  - Fetch categories from the backend.
+ *  - Deduplicate categories by name (case-insensitive) keeping user-specific categories
+ *    over global ones when names collide.
+ *
+ * Exposed API:
+ *  - categories: array of category objects
+ *  - fetchCategories(): re-fetch categories from server
+ *
+ * Notes:
+ *  - fetchCategories is called when Auth token changes (login/logout) so categories reflect user.
+ */
+
 import { createContext, useState, useEffect, useContext } from "react";
 import api from "../services/api";
 import { AuthContext } from "./AuthContext";
@@ -21,12 +37,12 @@ export const CategoryProvider = ({ children }) => {
         const key = (c.name || "").trim().toLowerCase();
         if (!key) return;
         const existing = map.get(key);
-        // if existing is global and current is user-specific -> replace
         const curIsGlobal = !!c.is_global;
         const existIsGlobal = existing ? !!existing.is_global : null;
         if (!existing) {
           map.set(key, c);
         } else if (existIsGlobal && !curIsGlobal) {
+          // Replace global with user-specific category if one exists
           map.set(key, c);
         }
         // otherwise keep existing (first occurrence)

@@ -1,4 +1,16 @@
 // src/pages/Login.jsx
+/**
+ * Login page
+ *
+ * Purpose:
+ *  - Simple sign-in form that calls AuthContext.login(username, password).
+ *  - On success the app expects the server to set an HttpOnly cookie and refreshUser() will load the user.
+ *
+ * Notes:
+ *  - Uses form-encoded POST to support OAuth2PasswordRequestForm on the backend.
+ *  - Displays a compact error box when credentials fail.
+ */
+
 import { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";

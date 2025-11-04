@@ -1,11 +1,16 @@
 // src/pages/Dashboard.jsx
 /**
- * Dashboard page (cleaned):
- * - removed "Client-side filter" / "Client-side filter active" strings
- * - keeps animated stat chips (Framer Motion)
- * - entries counts are animated and styled
+ * Dashboard page
  *
- * All comments and variable names remain in English for portfolio-readiness.
+ * Purpose:
+ *  - Main user dashboard that shows totals, recent incomes/expenses and categories.
+ *  - Supports quick add forms and editing via modal overlays.
+ *  - Filters data client-side using FilterBar and useMemo for performance.
+ *
+ * Important behavior:
+ *  - The dashboard displays server-provided aggregates (total_incomes, total_expenses, balance).
+ *  - Client-side subtotals are computed using filtered lists.
+ *  - All delete/cud operations call refreshUser() to keep the dashboard in sync.
  */
 
 import { useContext, useState, useMemo } from "react";
@@ -148,7 +153,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Summary */}
+      {/* Summary cards */}
       <div className="row mb-4">
         <div className="col-md-4">
           <div className="card text-bg-success text-center summary-card">
@@ -173,9 +178,8 @@ const Dashboard = () => {
       {/* Filter bar */}
       <FilterBar value={filter} onChange={setFilter} />
 
-      {/* Animated stats row (responsive). Only the chips - no "Client-side filter" text */}
+      {/* Animated stats row */}
       <motion.div className="mb-4 d-flex flex-wrap gap-3 stats-row" layout>
-        {/* Filtered counts */}
         <motion.div
           className="stat-chip bg-success"
           layout
@@ -239,7 +243,6 @@ const Dashboard = () => {
       <section className="mb-5">
         <div className="d-flex justify-content-between align-items-center mb-2">
           <h3>Recent Incomes</h3>
-          {/* animated small entries count */}
           <motion.small className="entries-count text-muted" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             {(user.incomes || []).length} entries
           </motion.small>

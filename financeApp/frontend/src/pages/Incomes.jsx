@@ -1,4 +1,15 @@
 // src/pages/Incomes.jsx
+/**
+ * Incomes page
+ *
+ * Purpose:
+ *  - List all incomes for the user and allow create/edit/delete.
+ *  - Fetches incomes independently using GET /incomes.
+ *
+ * Notes:
+ *  - Uses refreshUser() to keep dashboard aggregates in sync after CRUD operations.
+ */
+
 import { useEffect, useState, useContext } from "react";
 import { getIncomes, deleteIncome } from "../services/api";
 import { CategoryContext } from "../context/CategoryContext";

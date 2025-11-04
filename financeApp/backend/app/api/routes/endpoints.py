@@ -2,14 +2,18 @@
 """
 FinanceApp API endpoints (cookie-only authentication).
 
-- Login expects form-encoded fields (username, password) via OAuth2PasswordRequestForm.
-- Login sets HttpOnly cookie 'access_token' and returns token in body for backward-compat.
-- All protected endpoints (via get_current_user) read and validate the cookie only.
-- Categories endpoint accepts the cookie optionally and returns global-only if absent/invalid.
+Summary of behavior:
+ - /signup: creates user, hashes password, clones global categories to the new user, returns user data.
+ - /login: expects form-encoded fields (username, password), validates credentials, sets HttpOnly cookie 'access_token'
+           and returns the token in the response body for backward compatibility.
+ - /logout: clears the 'access_token' cookie.
+ - Protected endpoints use get_current_user() which resolves current user from HttpOnly cookie.
+ - /categories: if cookie present returns user categories + global categories; if no cookie returns only global categories.
 
-Note: in production set COOKIE_SECURE=True and serve over HTTPS.
+Security notes:
+ - Ensure SECRET_KEY, ALGORITHM and cookie behavior are set via environment variables.
+ - In production set COOKIE_SECURE=True and serve over HTTPS.
 """
-
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Cookie
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -30,6 +34,8 @@ from app.api.DTO.dtos import (
 from app.utils.security import hash_password, verify_password
 
 load_dotenv()
+
+# ----- Config from environment with sensible dev defaults -----
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
@@ -37,6 +43,7 @@ COOKIE_SECURE = os.getenv("COOKIE_SECURE", "False").lower() in ("1", "true", "ye
 
 routes = APIRouter()
 
+# Dependency: DB session
 def get_db():
     db = SessionLocal()
     try:
@@ -44,16 +51,19 @@ def get_db():
     finally:
         db.close()
 
+# Utility: create a JWT token (subject 'sub' will be the user's full_name)
 def create_access_token(data: dict, expires_delta: timedelta | None = None):
     to_encode = data.copy()
     expire = datetime.utcnow() + (expires_delta or timedelta(minutes=15))
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
+# Dependency: resolve current user from HttpOnly cookie named 'access_token'
 def get_current_user(access_token: Optional[str] = Cookie(None), db: Session = Depends(get_db)):
     """
-    Current user resolved from HttpOnly cookie named 'access_token'.
-    Raises 401 if cookie missing/invalid/expired or user not found.
+    - Reads JWT from cookie (access_token).
+    - Decodes token and finds user by username (full_name).
+    - Raises 401 if missing/invalid/expired.
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -78,7 +88,7 @@ def get_current_user(access_token: Optional[str] = Cookie(None), db: Session = D
     return user
 
 # -------------------------
-# Helpers to map models -> response dicts
+# Helpers to map ORM models -> response dicts (keeps endpoints clean)
 # -------------------------
 def expense_to_response(exp: Expense):
     return {
@@ -107,8 +117,12 @@ def category_to_response(cat: Category):
         "is_global": bool(cat.is_global),
     }
 
-# Clone default categories for new user
+# Clone default (global) categories for a newly created user
 def clone_default_categories_for_user(db: Session, user_id: int):
+    """
+    Finds categories where user_id is NULL AND is_global is True, clones them to the new user.
+    Each cloned category is set to is_global=False and assigned to user_id.
+    """
     default_categories = db.query(Category).filter(Category.user_id == None, Category.is_global == True).all()
     for cat in default_categories:
         new_cat = Category(
@@ -122,11 +136,21 @@ def clone_default_categories_for_user(db: Session, user_id: int):
         db.add(new_cat)
     db.commit()
 
-# =========================
+# ------------------------
 # Auth Endpoints
-# =========================
+# ------------------------
 @routes.post("/signup", response_model=UserDTOResponse)
 def signup(user: UserDTOPetition, db: Session = Depends(get_db)):
+    """
+    Create a new user.
+
+    Flow:
+     - Check if user already exists (by full_name).
+     - Hash the provided password using hash_password().
+     - Create DB user record and commit.
+     - Clone default/global categories for this new user.
+     - Return the full user representation via read_users_me().
+    """
     existing = db.query(User).filter(User.full_name == user.full_name).first()
     if existing:
         raise HTTPException(status_code=400, detail="User already exists")
@@ -144,14 +168,18 @@ def signup(user: UserDTOPetition, db: Session = Depends(get_db)):
 
     clone_default_categories_for_user(db, int(db_user.id))
 
-    # Return full user info
+    # Return full user info (includes aggregates and relations)
     return read_users_me(current_user=db_user, db=db)
 
 @routes.post("/login", response_model=TokenDTO)
 def login(response: Response, form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     """
-    Login endpoint. Accepts form-encoded 'username' and 'password'.
-    Sets HttpOnly cookie 'access_token'. Returns the token in the body for backward compatibility.
+    Login endpoint.
+
+    - Accepts form-encoded fields ('username' and 'password') via OAuth2PasswordRequestForm.
+    - Verifies password using verify_password().
+    - Generates a JWT and sets it as HttpOnly cookie 'access_token'.
+    - Returns token in JSON body for backward compatibility (clients should prefer cookie).
     """
     username = form_data.username
     password = form_data.password
@@ -169,7 +197,7 @@ def login(response: Response, form_data: OAuth2PasswordRequestForm = Depends(), 
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     )
 
-    # Set cookie: HttpOnly so JavaScript cannot access it. Use samesite=lax for CSRF balance.
+    # Set cookie: HttpOnly so JavaScript cannot access it.
     response.set_cookie(
         key="access_token",
         value=access_token,
@@ -179,19 +207,23 @@ def login(response: Response, form_data: OAuth2PasswordRequestForm = Depends(), 
         max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60
     )
 
-    # Return token for backward compatibility (clients should prefer cookie)
+    # Return token for backward compatibility
     return {"access_token": access_token, "token_type": "bearer"}
 
 @routes.post("/logout")
 def logout(response: Response):
-    """
-    Logout endpoint: clear cookie and return success.
-    """
+    """Logout endpoint: delete cookie and return success message."""
     response.delete_cookie("access_token")
     return {"message": "logged out"}
 
 @routes.get("/users/me", response_model=UserDTOResponse)
 def read_users_me(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """
+    Return the authenticated user's full view:
+      - personal fields (full_name, location, etc.)
+      - related incomes, expenses, categories (list of objects)
+      - computed aggregates (total_expenses, total_incomes, balance, savings_progress)
+    """
     db_user = db.query(User).filter(User.id == current_user.id).first()
 
     incomes = [income_to_response(i) for i in db_user.incomes]
@@ -213,11 +245,15 @@ def read_users_me(current_user: User = Depends(get_current_user), db: Session = 
         "savings_progress": db_user.savings_progress,
     }
 
-# =========================
+# ------------------------
 # Expenses CRUD
-# =========================
+# ------------------------
 @routes.post("/expenses", response_model=ExpenseDTOResponse)
 def create_expense(expense: ExpenseDTOPetition, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """
+    Create an expense for the current user.
+    Validates that the category exists (server-side).
+    """
     cat = db.query(Category).filter(Category.id == expense.category_id).first()
     if not cat:
         raise HTTPException(status_code=400, detail="Category not found")
@@ -235,11 +271,13 @@ def create_expense(expense: ExpenseDTOPetition, current_user: User = Depends(get
 
 @routes.get("/expenses", response_model=List[ExpenseDTOResponse])
 def get_expenses(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Return authenticated user's expenses."""
     results = db.query(Expense).filter(Expense.user_id == current_user.id).all()
     return [expense_to_response(r) for r in results]
 
 @routes.put("/expenses/{expense_id}", response_model=ExpenseDTOResponse)
 def update_expense(expense_id: int, expense: ExpenseDTOPetition, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Update an expense (ownership enforced)."""
     db_expense = db.query(Expense).filter(Expense.id == expense_id, Expense.user_id == current_user.id).first()
     if not db_expense:
         raise HTTPException(status_code=404, detail="Expense not found")
@@ -257,6 +295,7 @@ def update_expense(expense_id: int, expense: ExpenseDTOPetition, current_user: U
 
 @routes.delete("/expenses/{expense_id}")
 def delete_expense(expense_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Delete an expense (ownership enforced)."""
     db_expense = db.query(Expense).filter(Expense.id == expense_id, Expense.user_id == current_user.id).first()
     if not db_expense:
         raise HTTPException(status_code=404, detail="Expense not found")
@@ -264,9 +303,9 @@ def delete_expense(expense_id: int, current_user: User = Depends(get_current_use
     db.commit()
     return {"detail": "Expense deleted"}
 
-# =========================
+# ------------------------
 # Incomes CRUD
-# =========================
+# ------------------------
 @routes.post("/incomes", response_model=IncomeDTOResponse)
 def create_income(income: IncomeDTOPetition, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     cat = db.query(Category).filter(Category.id == income.category_id).first()
@@ -315,11 +354,12 @@ def delete_income(income_id: int, current_user: User = Depends(get_current_user)
     db.commit()
     return {"detail": "Income deleted"}
 
-# =========================
+# ------------------------
 # Categories CRUD
-# =========================
+# ------------------------
 @routes.post("/categories", response_model=CategoryDTOResponse)
 def create_category(category: CategoryDTOPetition, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Create a user category (is_global=False)."""
     db_category = Category(**category.dict(), user_id=current_user.id, is_global=False)
     db.add(db_category)
     db.commit()
@@ -329,9 +369,9 @@ def create_category(category: CategoryDTOPetition, current_user: User = Depends(
 @routes.get("/categories", response_model=List[CategoryDTOResponse])
 def get_categories(access_token: Optional[str] = Cookie(None), db: Session = Depends(get_db)):
     """
-    Return:
-      - If cookie present and valid -> categories for that user + global ones
-      - If no cookie present -> only global categories
+    Return categories according to authentication:
+      - If cookie present and valid -> return (user categories) + (global categories)
+      - If cookie absent/invalid -> return only global categories
     """
     user = None
     if access_token:
@@ -352,6 +392,7 @@ def get_categories(access_token: Optional[str] = Cookie(None), db: Session = Dep
 
 @routes.put("/categories/{category_id}", response_model=CategoryDTOResponse)
 def update_category(category_id: int, category: CategoryDTOPetition, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Update a category (only owner can update)."""
     db_category = db.query(Category).filter(Category.id == category_id, Category.user_id == current_user.id).first()
     if not db_category:
         raise HTTPException(status_code=404, detail="Category not found")
@@ -362,6 +403,7 @@ def update_category(category_id: int, category: CategoryDTOPetition, current_use
 
 @routes.delete("/categories/{category_id}")
 def delete_category(category_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Delete a category (only owner can delete)."""
     db_category = db.query(Category).filter(Category.id == category_id, Category.user_id == current_user.id).first()
     if not db_category:
         raise HTTPException(status_code=404, detail="Category not found")

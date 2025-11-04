@@ -1,16 +1,18 @@
 // src/components/FilterBar.jsx
 /**
- * FilterBar lets user filter by category and type (all/income/expense).
+ * FilterBar
+ *
+ * Purpose:
+ *  - Provide client-side filters for category and type (all/income/expense).
+ *  - Controlled component: parent passes `value` and `onChange`.
  *
  * Props:
  *  - value: { categoryId: string|number, type: "all"|"income"|"expense" }
- *  - onChange: (newValue) => void
+ *  - onChange: function(newValue)
  *
  * Notes:
- *  - This component is "visual only" (client-side). It does NOT show any
- *    "Client-side filter" textual label (removed by request).
- *  - Uses framer-motion for subtle entrance/layout animations.
- *  - Keeps selects controlled and accessible.
+ *  - Uses framer-motion for light animations.
+ *  - Keeps category options deduped/already computed in CategoryContext.
  */
 
 import { useContext, useMemo, useCallback } from "react";
@@ -93,9 +95,8 @@ const FilterBar = ({ value = { categoryId: "", type: "all" }, onChange = () => {
         <option value="expense">Expenses</option>
       </motion.select>
 
-      {/* Left spacer then actions */}
+      {/* Spacer and actions */}
       <div className="ms-auto d-flex gap-2 align-items-center">
-        {/* Clear filter button (small and unobtrusive) */}
         <motion.button
           type="button"
           className="btn btn-outline-secondary btn-sm"
@@ -107,8 +108,6 @@ const FilterBar = ({ value = { categoryId: "", type: "all" }, onChange = () => {
         >
           Clear
         </motion.button>
-
-        {/* Optional: small helper (non-intrusive) - removed textual 'Client-side filter' by design */}
       </div>
     </motion.div>
   );

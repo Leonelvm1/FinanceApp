@@ -1,4 +1,21 @@
 // src/components/CategoryList.jsx
+/**
+ * CategoryList
+ *
+ * Purpose:
+ *  - Render a list/table of categories.
+ *  - Allow creating and editing via CategoryForm modal overlays.
+ *  - Allow deleting user categories (global categories cannot be deleted).
+ *
+ * Context dependencies:
+ *  - CategoryContext: provides categories and fetchCategories()
+ *  - AuthContext: provides refreshUser() to reload user dashboard after changes
+ *
+ * Notes:
+ *  - Deletion shows a simple confirm() modal.
+ *  - When adding/updating/deleting it triggers fetchCategories() and optionally refreshUser().
+ */
+
 import { useContext, useState } from "react";
 import { CategoryContext } from "../context/CategoryContext";
 import { AuthContext } from "../context/AuthContext";
@@ -12,6 +29,7 @@ const CategoryList = () => {
   const [showForm, setShowForm] = useState(false);
 
   const handleDelete = async (category) => {
+    // Simple confirmation to avoid accidental deletes
     if (!confirm(`Are you sure you want to delete "${category.name}"? This will remove this category from all associated records.`)) {
       return;
     }

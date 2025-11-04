@@ -1,3 +1,12 @@
+// src/components/Layout.jsx
+/**
+ * Layout
+ *
+ * Simple layout component used by React Router.
+ * - Renders Navbar at top and Outlet for child routes.
+ * - Uses full-height flex layout for footer-less page.
+ */
+
 import { Outlet } from "react-router-dom";
 import Navbar from "./Navbar";
 

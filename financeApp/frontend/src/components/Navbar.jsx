@@ -1,3 +1,16 @@
+// src/components/Navbar.jsx
+/**
+ * Navbar
+ *
+ * Renders navigation links when user is authenticated.
+ * - Shows username and logout button on the right.
+ * - Uses react-router NavLink for active styling.
+ *
+ * Notes:
+ *  - Clicking brand navigates to /dashboard.
+ *  - For responsive navbar toggling, Bootstrap classes are present.
+ */
+
 import { useContext } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
@@ -21,7 +34,7 @@ const Navbar = () => {
         💰 Finance App
       </span>
 
-      {/* Botón toggler para móvil - ESENCIAL PARA RESPONSIVE */}
+      {/* Mobile toggler */}
       <button 
         className="navbar-toggler" 
         type="button" 
@@ -34,7 +47,6 @@ const Navbar = () => {
         <span className="navbar-toggler-icon"></span>
       </button>
 
-      {/* Contenido colapsable - TODO VA DENTRO DE ESTE DIV */}
       <div className="collapse navbar-collapse" id="navbarContent">
         {user && (
           <>

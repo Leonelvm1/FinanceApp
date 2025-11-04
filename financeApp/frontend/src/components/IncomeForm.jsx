@@ -1,4 +1,17 @@
 // src/components/IncomeForm.jsx
+/**
+ * IncomeForm
+ *
+ * Purpose:
+ *  - Create or edit an income item.
+ *  - Mirrors ExpenseForm behavior.
+ *
+ * Props:
+ *  - initialData: optional income object
+ *  - onSaved: callback fired after save
+ *  - onCancel: callback to close form/modal
+ */
+
 import { useState, useEffect, useContext } from "react";
 import { createIncome, updateIncome } from "../services/api";
 import { CategoryContext } from "../context/CategoryContext";
@@ -8,7 +21,7 @@ const IncomeForm = ({ initialData = null, onSaved = () => {}, onCancel = () => {
   const isEdit = !!initialData;
   const [description, setDescription] = useState(initialData?.description || "");
   const [amount, setAmount] = useState(initialData?.amount?.toString() || "");
-  const [categoryId, setCategoryId] = useState(initialData?.category_id ?? initialData?.category_id ?? "");
+  const [categoryId, setCategoryId] = useState(initialData?.category_id ?? "");
   const [date, setDate] = useState(initialData?.date ? initialData.date.split("T")[0] : new Date().toISOString().split("T")[0]);
 
   const { categories } = useContext(CategoryContext);

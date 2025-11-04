@@ -1,4 +1,22 @@
 // src/components/ExpenseForm.jsx
+/**
+ * ExpenseForm
+ *
+ * Purpose:
+ *  - Create or edit an expense.
+ *  - Uses CategoryContext to populate category select.
+ *  - Calls refreshUser() from AuthContext to keep dashboard updated.
+ *
+ * Props:
+ *  - initialData: optional expense object { id, description, amount, category_id, date }
+ *  - onSaved: callback after save
+ *  - onCancel: callback to close form/modal
+ *
+ * Notes:
+ *  - Date input uses YYYY-MM-DD format expected by the backend.
+ *  - Amount is parsed as float before sending.
+ */
+
 import { useState, useEffect, useContext } from "react";
 import { createExpense, updateExpense } from "../services/api";
 import { CategoryContext } from "../context/CategoryContext";
@@ -41,6 +59,7 @@ const ExpenseForm = ({ initialData = null, onSaved = () => {}, onCancel = () => 
       if (refreshUser) await refreshUser();
       onSaved();
       if (!isEdit) {
+        // Reset form after creation for quick multiple entries
         setDescription("");
         setAmount("");
         setCategoryId("");

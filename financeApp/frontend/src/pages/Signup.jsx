@@ -1,12 +1,17 @@
 // src/pages/Signup.jsx
 /**
- * Signup page with confirm-password and client-side validation.
- * - Uses validatePassword helper to show password strength rules.
- * - Prevents submission if password and confirmPassword don't match.
- * - Submits the full DTO required by backend: full_name, birth_date, location, savings_goal, password
+ * Signup page
+ *
+ * Purpose:
+ *  - Collect user data and create an account by calling AuthContext.signup(data).
+ *  - Enforces client-side password rules via validatePassword helper.
+ *
+ * Data contract:
+ *  - Submits JSON matching the backend UserDTOPetition fields:
+ *    { full_name, birth_date, location, savings_goal, password }
  *
  * Notes:
- * - Fields names match the backend UserDTOPetition Pydantic model.
+ *  - After successful signup the user is asked to sign in (redirect to /login).
  */
 
 import { useState, useContext, useEffect } from "react";

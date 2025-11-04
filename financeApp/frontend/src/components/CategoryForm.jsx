@@ -1,20 +1,31 @@
 // src/components/CategoryForm.jsx
+/**
+ * CategoryForm
+ *
+ * Purpose:
+ *  - Reusable form used to create or update a Category.
+ *  - Supports being used as a modal (parent controls visibility).
+ *
+ * Props:
+ *  - initialData: optional object { id, name, is_global } for edit mode
+ *  - onSaved: callback fired after successful create/update
+ *  - onCancel: callback fired when user cancels
+ *
+ * Notes:
+ *  - Keeps local loading state and prevents double submits.
+ *  - Alerts on error (simple UX). Could be replaced by a toast system.
+ */
+
 import { useState, useEffect } from "react";
 import { createCategory, updateCategory } from "../services/api";
 
-/**
- * CategoryForm supports:
- * - initialData (object with id, name, optionally is_global)
- * - onSaved callback (called after successful create/update)
- * - onCancel callback
- */
 const CategoryForm = ({ initialData = null, onSaved = () => {}, onCancel = () => {} }) => {
   const isEdit = !!initialData;
   const [name, setName] = useState(initialData?.name || "");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // keep form in sync if initialData changes
+    // If parent changes initialData (e.g., open with different category), sync state.
     setName(initialData?.name || "");
   }, [initialData]);
 
@@ -23,12 +34,16 @@ const CategoryForm = ({ initialData = null, onSaved = () => {}, onCancel = () =>
     setLoading(true);
     try {
       if (isEdit) {
+        // Update existing category by id
         await updateCategory(initialData.id, { name });
       } else {
+        // Create new category
         await createCategory({ name });
       }
+      // Notify parent to refresh UI
       onSaved();
     } catch (err) {
+      // Keep error handling simple for demo apps
       console.error("[CategoryForm] Error saving category:", err);
       alert("Could not save category. See console for details.");
     } finally {
