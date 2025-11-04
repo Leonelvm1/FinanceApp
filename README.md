@@ -136,7 +136,8 @@ Use this when you want a quick, copy-paste snapshot. To regenerate locally run:
 bash
 # from repo root (Linux / macOS / WSL / Git Bash)
 tree -I "node_modules|__pycache__|venv|dist|build" -L 4
-
+`````markdown
+```bash
 ├── README.md
 ├── backend
 │   ├── alembic
@@ -200,3 +201,4 @@ tree -I "node_modules|__pycache__|venv|dist|build" -L 4
     │   └── utils
     │       └── validatePassword.js
     └── vite.config.js
+```
