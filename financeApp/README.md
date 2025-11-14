@@ -1,23 +1,26 @@
 # FinanceApp — Demo Personal Finance Tracker
 
 **FinanceApp** is a small demo project built as a junior full-stack showcase:
+
 - **Frontend:** React (Vite) + React Router + Axios + Framer Motion + Bootstrap
 - **Backend:** FastAPI (Python) + SQLAlchemy
 - **Database (development):** Microsoft SQL Server (SSMS) via pyodbc
 - **Auth:** Cookie-based authentication (HttpOnly cookie storing a JWT)
-- **Password hashing:** bcrypt via `passlib`
+- **Password hashing:** bcrypt via passlib
 
 This repository is a demonstration of a typical full-stack flow:
-- Sign up → server hashes password → server clones global categories for the user → login → server sets HttpOnly cookie → frontend loads `/users/me` to render the Dashboard.
+
+- Sign up → server hashes password → server clones global categories for the user → login → server 
+  sets HttpOnly cookie → frontend loads `/users/me` to render the Dashboard.
 - Dashboard shows totals, recent incomes/expenses, and allows CRUD for incomes, expenses and categories.
 
 ---
 
 ## Why this project
+
 - Clean, practical example of frontend-backend integration for junior developers.
 - Demonstrates cookie-based auth, secure password handling, DB modeling and simple UX patterns (forms, modals, filters).
 - Ready to deploy to common static hosting (Netlify) for frontend and to a simple cloud VPS or serverless deployment for backend.
-
 
 ---
 
@@ -26,8 +29,10 @@ This repository is a demonstration of a typical full-stack flow:
 > Ensure you have Python (3.10+ recommended), Node 18+, and SQL Server (or Docker image) available.
 
 ### Backend (FastAPI)
+
 1. Create a Python virtual environment and install backend deps:
-```bash
+
+````bash
 cd backend
 python -m venv .venv
 source .venv/bin/activate        # macOS / Linux
@@ -37,7 +42,7 @@ pip install -r requirements.txt  # ensure requirements.txt includes fastapi, sql
 
 2. Configure environment variables. Create .env in backend/ (example below in "Environment" section).
 
-3. Run the backend: 
+3. Run the backend:
 uvicorn main:app --reload --factory --port 8000
 # or if not using factory: uvicorn app.main:app --reload --port 8000
 Visit http://localhost:8000/docs to see OpenAPI (Swagger) docs.
@@ -77,7 +82,7 @@ VITE_API_URL=http://localhost:8000
 
 ///////////////////////////////
 
-API reference 
+API reference
 Authentication (cookie-first)
 
 POST /signup — create account
@@ -198,3 +203,4 @@ tree -I "node_modules|__pycache__|venv|dist|build" -L 4
     │   └── utils
     │       └── validatePassword.js
     └── vite.config.js
+````

@@ -582,7 +582,7 @@ h3 { font-size: 1.25rem; }
   animation: fadeInUp 220ms ease-out;
 }
 
-/* ====== Dashboard animated stats/styles ====== */
+/* ====== Dashboard animated stats/styles (clean single copy) ====== */
 .stats-row {
   align-items: center;
   gap: 1rem;
@@ -675,52 +675,82 @@ h3 { font-size: 1.25rem; }
   opacity: 0.9;
 }
 
-/* ====== Dashboard: clean stats + animated counters ====== */
-.stats-row {
-  align-items: center;
-  gap: 1rem;
-  margin-top: 0.5rem;
+/* Slightly stronger auth-card elevation */
+.card.auth-card {
+  border-radius: 18px;
+  padding: 1.25rem;
 }
 
-/* stat chip base */
-.stat-chip {
+/* ====== Toast styles (integrated) ======
+   - Uses classes referenced by Toast.jsx:
+     .toast-viewport, .toast-card, .toast-title, .toast-message, .toast-close
+   - Confirm modal classes: .toast-confirm-backdrop, .toast-confirm-card, ...
+*/
+.toast-viewport {
+  position: fixed;
+  right: 20px;
+  top: 20px;
+  z-index: 9999;
   display: flex;
   flex-direction: column;
-  min-width: 170px;
-  max-width: 320px;
-  padding: 0.6rem 0.9rem;
+  gap: 10px;
+  max-width: 360px;
+  pointer-events: none;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+.toast-card {
+  pointer-events: auto;
   border-radius: 12px;
-  color: white;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.06);
-  transition: transform 220ms ease, box-shadow 220ms ease;
+  padding: 12px 14px;
+  box-shadow: 0 10px 30px rgba(16,24,32,0.12);
+  color: #072126;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  overflow: hidden;
 }
-
-/* label & value */
-.stat-chip .stat-label { font-size: 0.8rem; font-weight: 600; opacity: 0.95; margin-bottom: 0.18rem; }
-.stat-chip .stat-value { font-size: 1.15rem; font-weight: 800; letter-spacing: 0.2px; }
-
-/* chip color variants */
-.stat-chip.bg-success { background: linear-gradient(180deg, #2ea69a, #1e856f); }
-.stat-chip.bg-danger  { background: linear-gradient(180deg, #e66155, #c64236); }
-.stat-chip.bg-info    { background: linear-gradient(180deg, #6ac6e7, #2a8fb7); color: #023a4b; }
-.stat-chip.bg-warning { background: linear-gradient(180deg, #ffd97a, #ffb84d); color: #1d4d4f; }
-
-.stat-chip:hover { transform: translateY(-6px); box-shadow: 0 14px 30px rgba(0,0,0,0.12); }
-
-/* entries counters */
-.entries-count {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #3a5a58 !important;
+.toast-card .toast-body { flex: 1; }
+.toast-card .toast-title { font-weight: 700; margin-bottom: 2px; font-size: 0.95rem; }
+.toast-card .toast-message { font-size: 0.9rem; opacity: 0.92; line-height: 1.25; }
+.toast-card .toast-close {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  font-size: 14px;
 }
+.toast-card.success { background: linear-gradient(180deg,#e9fbf6,#dff7f0); color: #054f46; }
+.toast-card.error { background: linear-gradient(180deg,#ffecec,#ffdede); color: #5b1212; }
+.toast-card.info { background: linear-gradient(180deg,#eef8ff,#e8f4ff); color: #07324a; }
+.toast-card.warning { background: linear-gradient(180deg,#fff8e6,#fff3d1); color: #4a3b00; }
 
-/* responsive adjustments */
-@media (max-width: 900px) {
-  .stat-chip { min-width: 140px; }
-  .stats-row { gap: 0.6rem; }
+/* confirm modal */
+.toast-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(6,10,12,0.45);
 }
+.toast-confirm-card {
+  width: 100%;
+  max-width: 520px;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 18px;
+  box-shadow: 0 18px 60px rgba(2,6,23,0.28);
+}
+.toast-confirm-title { font-weight: 800; margin-bottom: 6px; font-size: 1.05rem; color: #072126; }
+.toast-confirm-message { color: #184b48; margin-bottom: 12px; opacity: 0.95; }
+.toast-confirm-actions { display:flex; gap: 8px; justify-content: flex-end; }
+.toast-confirm-btn { padding: 8px 12px; border-radius: 8px; border: none; cursor: pointer; font-weight: 700; }
+.toast-confirm-btn.cancel { background: transparent; color: #395f5f; }
+.toast-confirm-btn.confirm { background: #e85b4a; color: white; }
 
+/* final responsive minor tweaks */
 @media (max-width: 520px) {
-  .stat-chip { min-width: 48%; box-sizing: border-box; }
-  .entries-count { font-size: 0.9rem; }
+  .toast-viewport { right: 12px; left: 12px; top: 12px; max-width: calc(100% - 24px); }
 }
