@@ -13,6 +13,15 @@
  *  - All delete/cud operations call refreshUser() to keep the dashboard in sync.
  */
 
+// src/pages/Dashboard.jsx
+// src/pages/Dashboard.jsx
+/**
+ * Dashboard page
+ *
+ * - Uses global Toast (useToast) for success/error/confirm flows.
+ * - Uses formatCurrency helper from utils to display currency values.
+ */
+
 import { useContext, useState, useMemo } from "react";
 import { AuthContext } from "../context/AuthContext";
 import { CategoryContext } from "../context/CategoryContext";
@@ -22,7 +31,10 @@ import ExpenseForm from "../components/ExpenseForm";
 import CategoryForm from "../components/CategoryForm";
 import FilterBar from "../components/FilterBar";
 import { motion, AnimatePresence } from "framer-motion";
+import { useToast } from "../components/Toast";
+import { formatCurrency } from "../utils/currency";
 
+// animation presets (kept small & professional)
 const rowAnim = {
   initial: { opacity: 0, y: 18, scale: 0.98 },
   animate: { opacity: 1, y: 0, scale: 1 },
@@ -48,77 +60,105 @@ const modalCardAnim = {
 const Dashboard = () => {
   const { user, refreshUser } = useContext(AuthContext);
   const { categories, fetchCategories } = useContext(CategoryContext);
+  const { showToast, showConfirm } = useToast();
 
-  // editing states used to open overlays
+  // editing / creation states
   const [editingIncome, setEditingIncome] = useState(null);
   const [editingExpense, setEditingExpense] = useState(null);
   const [editingCategory, setEditingCategory] = useState(null);
   const [creatingCategory, setCreatingCategory] = useState(false);
 
-  // filter state: categoryId "" means all categories
+  // filter state
   const [filter, setFilter] = useState({ categoryId: "", type: "all" });
 
   if (!user) return <p className="text-center mt-5">Loading user data...</p>;
 
   const findCategoryName = (id) => categories.find((c) => c.id === id)?.name || "Uncategorized";
 
-  // --- handlers for CRUD deletes (with refresh)
+  // ----------------------
+  // DELETE handlers with confirm + toast + refresh
+  // ----------------------
   const handleDeleteIncome = async (id) => {
-    if (!confirm("Delete this income?")) return;
     try {
+      const ok = await showConfirm({
+        title: "Delete income",
+        message: "Are you sure you want to delete this income?",
+        confirmText: "Delete",
+        cancelText: "Cancel",
+      });
+      if (!ok) return;
+
       await deleteIncome(id);
       if (refreshUser) await refreshUser();
+      showToast({ type: "success", title: "Deleted", message: "Income deleted.", duration: 3500, closable: true });
     } catch (err) {
       console.error("Error deleting income", err);
-      alert("Delete failed");
+      showToast({ type: "error", title: "Delete failed", message: "Could not delete income.", duration: 6000, closable: true });
     }
   };
 
   const handleDeleteExpense = async (id) => {
-    if (!confirm("Delete this expense?")) return;
     try {
+      const ok = await showConfirm({
+        title: "Delete expense",
+        message: "Are you sure you want to delete this expense?",
+        confirmText: "Delete",
+        cancelText: "Cancel",
+      });
+      if (!ok) return;
+
       await deleteExpense(id);
       if (refreshUser) await refreshUser();
+      showToast({ type: "success", title: "Deleted", message: "Expense deleted.", duration: 3500, closable: true });
     } catch (err) {
       console.error("Error deleting expense", err);
-      alert("Delete failed");
+      showToast({ type: "error", title: "Delete failed", message: "Could not delete expense.", duration: 6000, closable: true });
     }
   };
 
   const handleDeleteCategory = async (category) => {
-    if (!confirm(`Are you sure you want to delete "${category.name}"? This will remove this category from all associated records.`)) {
-      return;
-    }
     try {
+      const ok = await showConfirm({
+        title: "Delete category",
+        message: `Are you sure you want to delete "${category.name}"? This will remove it from associated records.`,
+        confirmText: "Delete",
+        cancelText: "Cancel",
+      });
+      if (!ok) return;
+
       await deleteCategory(category.id);
       await fetchCategories();
       if (refreshUser) await refreshUser();
+      showToast({ type: "success", title: "Deleted", message: "Category deleted.", duration: 3500, closable: true });
     } catch (err) {
       console.error("Error deleting category:", err);
-      alert("Could not delete category. It might be in use.");
+      showToast({ type: "error", title: "Delete failed", message: "Could not delete category. It might be in use.", duration: 6000, closable: true });
     }
   };
 
-  // callbacks after create/update to refresh UI
+  // callbacks after save to refresh and notify
   const onCategorySaved = async () => {
     setEditingCategory(null);
     setCreatingCategory(false);
     await fetchCategories();
     if (refreshUser) await refreshUser();
+    showToast({ type: "success", title: "Saved", message: "Category saved.", duration: 3000, closable: true });
   };
   const onIncomeSaved = async () => {
     setEditingIncome(null);
     if (refreshUser) await refreshUser();
+    showToast({ type: "success", title: "Saved", message: "Income saved.", duration: 3000, closable: true });
   };
   const onExpenseSaved = async () => {
     setEditingExpense(null);
     if (refreshUser) await refreshUser();
+    showToast({ type: "success", title: "Saved", message: "Expense saved.", duration: 3000, closable: true });
   };
 
-  const currency = (v) =>
-    new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 2 }).format(v);
+  // use the format helper
+  const currency = (v) => formatCurrency(v ?? 0, { currency: "USD" });
 
-  // ------- Filtering using useMemo for performance -------
+  // client-side filtered lists
   const filteredIncomes = useMemo(() => {
     const raw = user.incomes || [];
     if (filter.type === "expense") return [];
@@ -239,7 +279,7 @@ const Dashboard = () => {
         </motion.div>
       </motion.div>
 
-      {/* Incomes section */}
+      {/* Incomes */}
       <section className="mb-5">
         <div className="d-flex justify-content-between align-items-center mb-2">
           <h3>Recent Incomes</h3>
@@ -290,7 +330,7 @@ const Dashboard = () => {
         </table>
       </section>
 
-      {/* Expenses section */}
+      {/* Expenses */}
       <section className="mb-5">
         <div className="d-flex justify-content-between align-items-center mb-2">
           <h3>Recent Expenses</h3>
@@ -394,7 +434,7 @@ const Dashboard = () => {
         </table>
       </section>
 
-      {/* MODALS using AnimatePresence for enter/exit */}
+      {/* MODALS */}
       <AnimatePresence>
         {editingIncome && (
           <motion.div className="custom-modal-backdrop" initial={modalBackdropAnim.initial} animate={modalBackdropAnim.animate} exit={modalBackdropAnim.exit} transition={modalBackdropAnim.transition} onClick={() => setEditingIncome(null)}>

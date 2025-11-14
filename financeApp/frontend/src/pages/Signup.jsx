@@ -13,59 +13,148 @@
  * Notes:
  *  - After successful signup the user is asked to sign in (redirect to /login).
  */
+/**
+ * Signup page (refactored)
+ * - shows animated card (mini-bounce)
+ * - uses toast notifications on success / error
+ * - client-side password validation + confirm password
+ */
 
+// src/pages/Signup.jsx
+/**
+ * Signup page with:
+ *  - formatted savings_goal input (thousands separators & cents)
+ *  - client-side password rules (validatePassword)
+ *  - animated success / error alerts using Framer Motion (mini-bounce)
+ *
+ * Data contract:
+ *  - Submits JSON matching backend UserDTOPetition:
+ *      { full_name, birth_date, location, savings_goal (number), password }
+ *
+ * UX details:
+ *  - Input shows formatted value on blur (2 decimals).
+ *  - On focus it shows a raw editable number (no grouping) for easy editing.
+ *  - Alerts auto-hide after 3.2s.
+ */
+
+// src/pages/Signup.jsx
+/**
+ * Signup page - uses toast notifications and formats savings_goal input.
+ */
+// src/pages/Signup.jsx
+/**
+ * Signup page - uses:
+ *  - CurrencyInput (src/components/CurrencyInput.jsx) for savings_goal
+ *  - useToast (global provider already in main.jsx)
+ *  - Framer Motion mini-bounce for the card
+ *
+ * Data sent:
+ *  { full_name, birth_date, location, savings_goal (number), password }
+ */
+// src/pages/Signup.jsx
 import { useState, useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import { AuthContext } from "../context/AuthContext";
 import { validatePassword } from "../utils/validatePassword";
+import CurrencyInput from "../components/CurrencyInput";
+import { useToast } from "../components/Toast";
+
+const cardAnim = {
+  initial: { opacity: 0, y: 8, scale: 0.995 },
+  animate: { opacity: 1, y: 0, scale: 1 },
+  whileHover: { y: -4, scale: 1.002 },
+  transition: { type: "spring", stiffness: 200, damping: 18, duration: 0.28 },
+};
 
 const Signup = () => {
   const { signup, token } = useContext(AuthContext);
+  const { showToast } = useToast();
   const navigate = useNavigate();
+
   const [form, setForm] = useState({
     full_name: "",
     birth_date: "",
     location: "",
-    savings_goal: 0,
+    savings_goal: null, // number | null
     password: ""
   });
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
     if (token) navigate("/dashboard");
   }, [token, navigate]);
 
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((s) => ({ ...s, [name]: value }));
+  };
+
+  const handleSavingsChange = (num) => {
+    // num is number | null
+    setForm((s) => ({ ...s, savings_goal: num }));
+  };
 
   const pw = validatePassword(form.password);
   const passwordsMatch = form.password === confirmPassword;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setErrorMsg("");
 
     if (!pw.valid) {
-      setErrorMsg("Please choose a stronger password according to the rules.");
+      showToast({
+        type: "warning",
+        title: "Weak password",
+        message: "Please strengthen your password according to the rules.",
+        duration: 5200,
+        closable: true,
+      });
       return;
     }
 
     if (!passwordsMatch) {
-      setErrorMsg("Passwords do not match. Please confirm your password.");
+      showToast({
+        type: "error",
+        title: "Passwords mismatch",
+        message: "Passwords do not match. Please confirm your password.",
+        duration: 5200,
+        closable: true,
+      });
       return;
     }
 
     setLoading(true);
     try {
-      // Backend expects JSON body with fields defined in UserDTOPetition
-      await signup(form);
-      alert("Account created. Please sign in.");
+      const payload = {
+        full_name: form.full_name,
+        birth_date: form.birth_date,
+        location: form.location,
+        savings_goal: Number(form.savings_goal ?? 0),
+        password: form.password,
+      };
+
+      await signup(payload);
+
+      showToast({
+        type: "success",
+        title: "Account created",
+        message: "Your account was created — please sign in.",
+        duration: 3600,
+        closable: true,
+      });
+
       navigate("/login");
     } catch (err) {
       console.error("Signup error:", err);
       const msg = err?.response?.data?.detail || "Failed to create account.";
-      setErrorMsg(String(msg));
+      showToast({
+        type: "error",
+        title: "Signup error",
+        message: String(msg),
+        duration: 7000,
+        closable: true,
+      });
     } finally {
       setLoading(false);
     }
@@ -73,16 +162,17 @@ const Signup = () => {
 
   return (
     <div className="d-flex vh-100 align-items-center justify-content-center">
-      <div className="card shadow-sm p-4" style={{ width: 520 }}>
+      <motion.div
+        className="card shadow-sm p-4"
+        style={{ width: 520 }}
+        initial={cardAnim.initial}
+        animate={cardAnim.animate}
+        whileHover={cardAnim.whileHover}
+        transition={cardAnim.transition}
+      >
         <h3 className="mb-3">Create an account</h3>
 
-        {errorMsg && (
-          <div className="alert alert-danger" role="alert">
-            {errorMsg}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} autoComplete="off">
           <div className="row">
             <div className="col-md-6 mb-3">
               <label className="form-label">Full name</label>
@@ -121,18 +211,19 @@ const Signup = () => {
                 autoComplete="address-level2"
               />
             </div>
+
             <div className="col-md-6 mb-3">
-              <label className="form-label">Savings goal</label>
-              <input
+              <label className="form-label">Savings goal (USD)</label>
+              <CurrencyInput
                 name="savings_goal"
-                type="number"
-                className="form-control"
                 value={form.savings_goal}
-                onChange={handleChange}
-                required
-                min="0"
-                step="0.01"
+                onChangeNumber={handleSavingsChange}
+                placeholder="0.00"
+                locale="en-US"
+                currency="USD"
+                className="form-control"
               />
+              <small className="text-muted">Type numbers and separators — we'll store the numeric value.</small>
             </div>
           </div>
 
@@ -189,9 +280,11 @@ const Signup = () => {
             Already have an account? <a href="/login">Sign in</a>
           </small>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };
 
 export default Signup;
+
+

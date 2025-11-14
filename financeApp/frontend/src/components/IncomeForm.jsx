@@ -12,25 +12,35 @@
  *  - onCancel: callback to close form/modal
  */
 
+// src/components/IncomeForm.jsx
+/**
+ * IncomeForm - mirrors ExpenseForm but with primary styling; uses useToast and amount formatting.
+ */
+
+/// src/components/IncomeForm.jsx
 import { useState, useEffect, useContext } from "react";
 import { createIncome, updateIncome } from "../services/api";
 import { CategoryContext } from "../context/CategoryContext";
 import { AuthContext } from "../context/AuthContext";
+import CurrencyInput from "./CurrencyInput";
+import { useToast } from "./Toast";
 
 const IncomeForm = ({ initialData = null, onSaved = () => {}, onCancel = () => {} }) => {
   const isEdit = !!initialData;
   const [description, setDescription] = useState(initialData?.description || "");
-  const [amount, setAmount] = useState(initialData?.amount?.toString() || "");
+  const [amount, setAmount] = useState(initialData?.amount ?? null);
   const [categoryId, setCategoryId] = useState(initialData?.category_id ?? "");
   const [date, setDate] = useState(initialData?.date ? initialData.date.split("T")[0] : new Date().toISOString().split("T")[0]);
+  const [loading, setLoading] = useState(false);
 
   const { categories } = useContext(CategoryContext);
   const { refreshUser } = useContext(AuthContext);
+  const { showToast } = useToast();
 
   useEffect(() => {
     if (initialData) {
       setDescription(initialData.description || "");
-      setAmount(initialData.amount?.toString() || "");
+      setAmount(initialData.amount ?? null);
       setCategoryId(initialData.category_id ?? "");
       setDate(initialData.date ? initialData.date.split("T")[0] : new Date().toISOString().split("T")[0]);
     }
@@ -38,31 +48,37 @@ const IncomeForm = ({ initialData = null, onSaved = () => {}, onCancel = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const payload = {
-      description,
-      amount: parseFloat(amount),
-      date,
-      category_id: Number(categoryId),
-    };
-
+    setLoading(true);
     try {
+      const payload = {
+        description,
+        amount: Number(amount ?? 0),
+        date,
+        category_id: Number(categoryId),
+      };
+
       if (isEdit) {
         await updateIncome(initialData.id, payload);
+        showToast({ type: "success", title: "Income updated", message: "Income updated successfully.", duration: 3000, closable: true });
       } else {
         await createIncome(payload);
+        showToast({ type: "success", title: "Income added", message: "Income created successfully.", duration: 3000, closable: true });
       }
+
       if (refreshUser) await refreshUser();
       onSaved();
-      // reset if it was a create
+
       if (!isEdit) {
         setDescription("");
-        setAmount("");
+        setAmount(null);
         setCategoryId("");
         setDate(new Date().toISOString().split("T")[0]);
       }
     } catch (err) {
       console.error("[IncomeForm] Save error", err);
-      alert("Error saving income. Check console.");
+      showToast({ type: "error", title: "Save failed", message: "Error saving income. See console.", duration: 6000, closable: true });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -73,8 +89,14 @@ const IncomeForm = ({ initialData = null, onSaved = () => {}, onCancel = () => {
                onChange={(e) => setDescription(e.target.value)} required />
       </div>
       <div className="col-md-2">
-        <input type="number" className="form-control" placeholder="Amount" value={amount}
-               onChange={(e) => setAmount(e.target.value)} step="0.01" required />
+        <CurrencyInput
+          value={amount}
+          onChangeNumber={(n) => setAmount(n)}
+          placeholder="0.00"
+          className="form-control"
+          currency="USD"
+          locale="en-US"
+        />
       </div>
       <div className="col-md-3">
         <select className="form-select" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} required>
@@ -88,7 +110,9 @@ const IncomeForm = ({ initialData = null, onSaved = () => {}, onCancel = () => {
 
       <div className="col-12 mt-2 d-flex justify-content-end gap-2">
         <button type="button" className="btn btn-link cancel" onClick={onCancel}>Cancel</button>
-        <button type="submit" className="btn btn-primary">{isEdit ? "Update" : "Add"}</button>
+        <button type="submit" className={isEdit ? "btn btn-primary" : "btn btn-success"} disabled={loading}>
+          {isEdit ? (loading ? "Updating..." : "Update") : (loading ? "Adding..." : "Add")}
+        </button>
       </div>
     </form>
   );

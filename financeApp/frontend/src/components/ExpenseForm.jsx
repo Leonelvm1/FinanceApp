@@ -17,25 +17,36 @@
  *  - Amount is parsed as float before sending.
  */
 
+// src/components/ExpenseForm.jsx
+/**
+ * ExpenseForm - uses useToast for notifications and formats amounts with separators.
+ */
+
+// src/components/ExpenseForm.jsx
+
 import { useState, useEffect, useContext } from "react";
 import { createExpense, updateExpense } from "../services/api";
 import { CategoryContext } from "../context/CategoryContext";
 import { AuthContext } from "../context/AuthContext";
+import CurrencyInput from "./CurrencyInput";
+import { useToast } from "./Toast";
 
 const ExpenseForm = ({ initialData = null, onSaved = () => {}, onCancel = () => {} }) => {
   const isEdit = !!initialData;
   const [description, setDescription] = useState(initialData?.description || "");
-  const [amount, setAmount] = useState(initialData?.amount?.toString() || "");
+  const [amount, setAmount] = useState(initialData?.amount ?? null);
   const [categoryId, setCategoryId] = useState(initialData?.category_id ?? "");
   const [date, setDate] = useState(initialData?.date ? initialData.date.split("T")[0] : new Date().toISOString().split("T")[0]);
+  const [loading, setLoading] = useState(false);
 
   const { categories } = useContext(CategoryContext);
   const { refreshUser } = useContext(AuthContext);
+  const { showToast } = useToast();
 
   useEffect(() => {
     if (initialData) {
       setDescription(initialData.description || "");
-      setAmount(initialData.amount?.toString() || "");
+      setAmount(initialData.amount ?? null);
       setCategoryId(initialData.category_id ?? "");
       setDate(initialData.date ? initialData.date.split("T")[0] : new Date().toISOString().split("T")[0]);
     }
@@ -43,31 +54,37 @@ const ExpenseForm = ({ initialData = null, onSaved = () => {}, onCancel = () => 
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const payload = {
-      description,
-      amount: parseFloat(amount),
-      date,
-      category_id: Number(categoryId),
-    };
-
+    setLoading(true);
     try {
+      const payload = {
+        description,
+        amount: Number(amount ?? 0),
+        date,
+        category_id: Number(categoryId),
+      };
+
       if (isEdit) {
         await updateExpense(initialData.id, payload);
+        showToast({ type: "success", title: "Expense updated", message: "Expense updated successfully.", duration: 3000, closable: true });
       } else {
         await createExpense(payload);
+        showToast({ type: "success", title: "Expense added", message: "Expense created successfully.", duration: 3000, closable: true });
       }
+
       if (refreshUser) await refreshUser();
       onSaved();
+
       if (!isEdit) {
-        // Reset form after creation for quick multiple entries
         setDescription("");
-        setAmount("");
+        setAmount(null);
         setCategoryId("");
         setDate(new Date().toISOString().split("T")[0]);
       }
     } catch (err) {
       console.error("[ExpenseForm] Save error", err);
-      alert("Error saving expense. Check console.");
+      showToast({ type: "error", title: "Save failed", message: "Error saving expense. See console.", duration: 6000, closable: true });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -78,8 +95,14 @@ const ExpenseForm = ({ initialData = null, onSaved = () => {}, onCancel = () => 
                onChange={(e) => setDescription(e.target.value)} required />
       </div>
       <div className="col-md-2">
-        <input type="number" className="form-control" placeholder="Amount" value={amount}
-               onChange={(e) => setAmount(e.target.value)} step="0.01" required />
+        <CurrencyInput
+          value={amount}
+          onChangeNumber={(n) => setAmount(n)}
+          placeholder="0.00"
+          className="form-control"
+          currency="USD"
+          locale="en-US"
+        />
       </div>
       <div className="col-md-3">
         <select className="form-select" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} required>
@@ -93,10 +116,14 @@ const ExpenseForm = ({ initialData = null, onSaved = () => {}, onCancel = () => 
 
       <div className="col-12 mt-2 d-flex justify-content-end gap-2">
         <button type="button" className="btn btn-link cancel" onClick={onCancel}>Cancel</button>
-        <button type="submit" className="btn btn-danger">{isEdit ? "Update" : "Add"}</button>
+        <button type="submit" className="btn btn-danger" disabled={loading}>
+          {isEdit ? (loading ? "Updating..." : "Update") : (loading ? "Adding..." : "Add")}
+        </button>
       </div>
     </form>
   );
 };
 
 export default ExpenseForm;
+
+
