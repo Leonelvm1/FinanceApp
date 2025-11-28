@@ -1,4 +1,5 @@
-# FinanceApp — Demo Personal Finance Tracker
+# FinanceApp — Demo Personal Finance Tracker  
+🔗 **Live Demo:** https://financeapp-ten-chi.vercel.app
 
 **FinanceApp** is a small demo project built as a junior full-stack showcase:
 
