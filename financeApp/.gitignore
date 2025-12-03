@@ -26,7 +26,7 @@ dist-ssr
 # Ignore environment files
 .env
 
-__pycache__/
-*.pyc
 venv/
 .venv/
+__pycache__/
+*.pyc
