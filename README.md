@@ -1,5 +1,4 @@
-# FinanceApp — Demo Personal Finance Tracker  
-🔗 **Live Demo:** https://financeapp-ten-chi.vercel.app
+# FinanceApp — Demo Personal Finance Tracker
 
 **FinanceApp** is a small demo project built as a junior full-stack showcase:
 
@@ -7,11 +6,12 @@
 - **Backend:** FastAPI (Python) + SQLAlchemy
 - **Database (development):** Microsoft SQL Server (SSMS) via pyodbc
 - **Auth:** Cookie-based authentication (HttpOnly cookie storing a JWT)
-- **Password hashing:** bcrypt via `passlib`
+- **Password hashing:** bcrypt via passlib
 
 This repository is a demonstration of a typical full-stack flow:
 
-- Sign up → server hashes password → server clones global categories for the user → login → server sets HttpOnly cookie → frontend loads `/users/me` to render the Dashboard.
+- Sign up → server hashes password → server clones global categories for the user → login → server 
+  sets HttpOnly cookie → frontend loads `/users/me` to render the Dashboard.
 - Dashboard shows totals, recent incomes/expenses, and allows CRUD for incomes, expenses and categories.
 
 ---
@@ -32,7 +32,7 @@ This repository is a demonstration of a typical full-stack flow:
 
 1. Create a Python virtual environment and install backend deps:
 
-bash
+````bash
 cd backend
 python -m venv .venv
 source .venv/bin/activate        # macOS / Linux
@@ -77,6 +77,8 @@ FRONTEND_ORIGINS=http://localhost:5173
 
 # frontend/.env
 VITE_API_URL=http://localhost:8000
+
+
 
 ///////////////////////////////
 
@@ -132,13 +134,12 @@ If you change column types (e.g., password length, add created_at, is_active) ge
 
 Below is a quick visual of the repository layout so reviewers can understand the app layers at a glance.
 
-### 1) File tree 
+### 1) File tree (developer-friendly)
 Use this when you want a quick, copy-paste snapshot. To regenerate locally run:
-bash
+```bash
 # from repo root (Linux / macOS / WSL / Git Bash)
 tree -I "node_modules|__pycache__|venv|dist|build" -L 4
-`````markdown
-```bash
+
 ├── README.md
 ├── backend
 │   ├── alembic
@@ -202,4 +203,4 @@ tree -I "node_modules|__pycache__|venv|dist|build" -L 4
     │   └── utils
     │       └── validatePassword.js
     └── vite.config.js
-```
+````
