@@ -1,5 +1,14 @@
+###############################################################################
+# Global .gitignore for FinanceApp
+# This file covers both the backend (FastAPI) and frontend (React).
+# It ensures sensitive files, local dependencies, build outputs, logs,
+# and virtual environments are never committed to the repository.
+###############################################################################
+
+###############################################################################
 # Logs
-logs
+###############################################################################
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -7,26 +16,43 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
+###############################################################################
+# Node.js (Frontend)
+###############################################################################
+node_modules/           # Installed frontend dependencies
+dist/                   # Vite production build output
+dist-ssr/               # Vite SSR build output
+*.local                 # Local config files created by tooling
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-
-# Ignore environment files
+###############################################################################
+# Environment Variables
+# These files contain secrets and should NEVER be committed.
+###############################################################################
 .env
+*.env
+*.env.*
 
-__pycache__/
-*.pyc
-venv/
-.venv/
+###############################################################################
+# Python (Backend)
+###############################################################################
+__pycache__/            # Python bytecode
+*.pyc                  # Python cache files
+venv/                  # Virtual environment (Windows / default)
+.venv/                 # Virtual environment (Unix / recommended)
+
+###############################################################################
+# IDEs and Editors
+###############################################################################
+.vscode/*               # VS Code configs (ignored)
+!.vscode/extensions.json # But keep recommended extensions
+.idea/                  # JetBrains IDE configs
+.DS_Store               # macOS Finder metadata
+*.suo                   # Visual Studio files
+*.ntvs*                 # Node Tools for Visual Studio
+*.njsproj               # Node.js project files
+*.sln                   # Visual Studio solution files
+*.sw?                   # Vim swap files
+
+###############################################################################
+# End of .gitignore
+###############################################################################
