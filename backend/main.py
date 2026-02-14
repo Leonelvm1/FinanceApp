@@ -56,6 +56,8 @@ app.add_middleware(
     allow_credentials=True,  # REQUIRED: browser will only send cookies when this is True
     allow_methods=["*"],
     allow_headers=["*"],
+    # Allow localhost/127.0.0.1 on any port during local development
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
 )
 
 # Seed on startup; keep it safe (wrap in try/except)

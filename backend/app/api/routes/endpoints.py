@@ -14,7 +14,7 @@ Security notes:
  - Ensure SECRET_KEY, ALGORITHM and cookie behavior are set via environment variables.
  - In production set COOKIE_SECURE=True and serve over HTTPS.
 """
-from fastapi import APIRouter, Depends, HTTPException, status, Response, Cookie
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Cookie, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from datetime import timedelta, datetime, date, timezone
@@ -90,6 +90,17 @@ def get_current_user(access_token: Optional[str] = Cookie(None), db: Session = D
 # -------------------------
 # Helpers to map ORM models -> response dicts (keeps endpoints clean)
 # -------------------------
+def _to_utc_dt(v):
+    """Convert date or datetime to UTC-aware datetime."""
+    if v is None:
+        return None
+    if isinstance(v, datetime):
+        return v if v.tzinfo else v.replace(tzinfo=timezone.utc)
+    if isinstance(v, date):
+        return datetime(v.year, v.month, v.day, tzinfo=timezone.utc)
+    return v
+
+
 def expense_to_response(exp: Expense):
     return {
         "id": exp.id,
@@ -155,15 +166,6 @@ def signup(user: UserDTOPetition, db: Session = Depends(get_db)):
     if existing:
         raise HTTPException(status_code=400, detail="User already exists")
 
-    def _to_utc_dt(v):
-        if v is None:
-            return None
-        if isinstance(v, datetime):
-            return v if v.tzinfo else v.replace(tzinfo=timezone.utc)
-        if isinstance(v, date):
-            return datetime(v.year, v.month, v.day, tzinfo=timezone.utc)
-        return v
-
     db_user = User(
         full_name=user.full_name,
         birth_date=_to_utc_dt(user.birth_date),
@@ -181,7 +183,7 @@ def signup(user: UserDTOPetition, db: Session = Depends(get_db)):
     return read_users_me(current_user=db_user, db=db)
 
 @routes.post("/login", response_model=TokenDTO)
-def login(response: Response, form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+def login(request: Request, response: Response, form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     """
     Login endpoint.
 
@@ -206,14 +208,26 @@ def login(response: Response, form_data: OAuth2PasswordRequestForm = Depends(), 
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     )
 
-    # Set cookie: HttpOnly so JavaScript cannot access it.
-    # Use conservative SameSite for local HTTP (lax) and 'none' when Secure cookie is enabled (HTTPS)
-    cookie_samesite = "none" if COOKIE_SECURE else "lax"
+    # Determine effective cookie security for dev vs production.
+    # If COOKIE_SECURE is True but the incoming request is HTTP (common in local dev),
+    # avoid setting Secure flag so browsers accept the cookie on localhost.
+    is_request_https = False
+    # Try common headers / request.url.scheme
+    try:
+        scheme = request.url.scheme
+        if scheme and scheme.lower() == 'https':
+            is_request_https = True
+    except Exception:
+        is_request_https = False
+
+    effective_secure = COOKIE_SECURE and is_request_https
+    cookie_samesite = 'none' if effective_secure else 'lax'
+
     response.set_cookie(
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=COOKIE_SECURE,
+        secure=effective_secure,
         samesite=cookie_samesite,
         max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         path='/'
