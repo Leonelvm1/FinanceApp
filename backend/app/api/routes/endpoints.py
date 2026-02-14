@@ -17,7 +17,7 @@ Security notes:
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Cookie
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from datetime import timedelta, datetime, date
+from datetime import timedelta, datetime, date, timezone
 from jose import JWTError, jwt
 from typing import List, Optional
 import os
@@ -95,7 +95,7 @@ def expense_to_response(exp: Expense):
         "id": exp.id,
         "description": exp.description,
         "amount": exp.amount,
-        "date": exp.date,
+        "date": exp.date.date() if isinstance(exp.date, datetime) else exp.date,
         "category_id": exp.category_id,
         "category_name": exp.category.name if exp.category else None,
     }
@@ -105,7 +105,7 @@ def income_to_response(inc: Income):
         "id": inc.id,
         "description": inc.description,
         "amount": inc.amount,
-        "date": inc.date,
+        "date": inc.date.date() if isinstance(inc.date, datetime) else inc.date,
         "category_id": inc.category_id,
         "category_name": inc.category.name if inc.category else None,
     }
@@ -129,7 +129,7 @@ def clone_default_categories_for_user(db: Session, user_id: int):
             name=cat.name,
             description=cat.description,
             value=0.0,
-            date=date.today(),
+            date=datetime.now(timezone.utc),
             user_id=user_id,
             is_global=False
         )
@@ -155,9 +155,18 @@ def signup(user: UserDTOPetition, db: Session = Depends(get_db)):
     if existing:
         raise HTTPException(status_code=400, detail="User already exists")
 
+    def _to_utc_dt(v):
+        if v is None:
+            return None
+        if isinstance(v, datetime):
+            return v if v.tzinfo else v.replace(tzinfo=timezone.utc)
+        if isinstance(v, date):
+            return datetime(v.year, v.month, v.day, tzinfo=timezone.utc)
+        return v
+
     db_user = User(
         full_name=user.full_name,
-        birth_date=user.birth_date,
+        birth_date=_to_utc_dt(user.birth_date),
         location=user.location,
         savings_goal=user.savings_goal,
         password=hash_password(user.password)
@@ -198,13 +207,16 @@ def login(response: Response, form_data: OAuth2PasswordRequestForm = Depends(), 
     )
 
     # Set cookie: HttpOnly so JavaScript cannot access it.
+    # Use conservative SameSite for local HTTP (lax) and 'none' when Secure cookie is enabled (HTTPS)
+    cookie_samesite = "none" if COOKIE_SECURE else "lax"
     response.set_cookie(
         key="access_token",
         value=access_token,
         httponly=True,
         secure=COOKIE_SECURE,
-        samesite="lax",
-        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60
+        samesite=cookie_samesite,
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        path='/'
     )
 
     # Return token for backward compatibility
@@ -260,7 +272,7 @@ def create_expense(expense: ExpenseDTOPetition, current_user: User = Depends(get
     db_expense = Expense(
         description=expense.description,
         amount=expense.amount,
-        date=expense.date,
+        date=_to_utc_dt(expense.date),
         category_id=expense.category_id,
         user_id=current_user.id
     )
@@ -270,9 +282,42 @@ def create_expense(expense: ExpenseDTOPetition, current_user: User = Depends(get
     return expense_to_response(db_expense)
 
 @routes.get("/expenses", response_model=List[ExpenseDTOResponse])
-def get_expenses(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    """Return authenticated user's expenses."""
-    results = db.query(Expense).filter(Expense.user_id == current_user.id).all()
+def get_expenses(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+):
+    """Return authenticated user's expenses.
+
+    Optional query params: `start_date` and `end_date` (ISO date strings, e.g. 2023-01-01).
+    The server will parse and apply inclusive date range filtering. Dates are treated as local date values
+    for comparisons against the stored `Date` column. For future migration to timezone-aware datetimes,
+    this function centralizes parsing and normalization.
+    """
+    query = db.query(Expense).filter(Expense.user_id == current_user.id)
+
+    def _parse_to_date(s: Optional[str]):
+        if not s:
+            return None
+        try:
+            # Accept either YYYY-MM-DD or full ISO datetime; convert to date
+            from datetime import datetime
+            if "T" in s:
+                return datetime.fromisoformat(s).date()
+            return datetime.fromisoformat(s).date() if "-" in s else None
+        except Exception:
+            return None
+
+    sd = _parse_to_date(start_date)
+    ed = _parse_to_date(end_date)
+
+    if sd:
+        query = query.filter(Expense.date >= sd)
+    if ed:
+        query = query.filter(Expense.date <= ed)
+
+    results = query.all()
     return [expense_to_response(r) for r in results]
 
 @routes.put("/expenses/{expense_id}", response_model=ExpenseDTOResponse)
@@ -314,7 +359,7 @@ def create_income(income: IncomeDTOPetition, current_user: User = Depends(get_cu
     db_income = Income(
         description=income.description,
         amount=income.amount,
-        date=income.date,
+        date=_to_utc_dt(income.date),
         category_id=income.category_id,
         user_id=current_user.id
     )
@@ -324,8 +369,37 @@ def create_income(income: IncomeDTOPetition, current_user: User = Depends(get_cu
     return income_to_response(db_income)
 
 @routes.get("/incomes", response_model=List[IncomeDTOResponse])
-def get_incomes(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    results = db.query(Income).filter(Income.user_id == current_user.id).all()
+def get_incomes(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+):
+    """Return authenticated user's incomes with optional date range filtering.
+    See `get_expenses` for parsing rules.
+    """
+    query = db.query(Income).filter(Income.user_id == current_user.id)
+
+    def _parse_to_date(s: Optional[str]):
+        if not s:
+            return None
+        try:
+            from datetime import datetime
+            if "T" in s:
+                return datetime.fromisoformat(s).date()
+            return datetime.fromisoformat(s).date() if "-" in s else None
+        except Exception:
+            return None
+
+    sd = _parse_to_date(start_date)
+    ed = _parse_to_date(end_date)
+
+    if sd:
+        query = query.filter(Income.date >= sd)
+    if ed:
+        query = query.filter(Income.date <= ed)
+
+    results = query.all()
     return [income_to_response(r) for r in results]
 
 @routes.put("/incomes/{income_id}", response_model=IncomeDTOResponse)

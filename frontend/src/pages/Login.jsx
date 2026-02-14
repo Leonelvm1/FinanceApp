@@ -22,6 +22,7 @@ import { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { useToast } from "../components/Toast";
+import PasswordInput from "../components/PasswordInput";
 
 const Login = () => {
   const { login } = useContext(AuthContext);
@@ -47,19 +48,28 @@ const Login = () => {
       navigate("/dashboard");
     } catch (err) {
       console.error("[Login] Error:", err);
-      const msg = err?.response?.data?.detail || "Invalid credentials or server error.";
-      showToast({ type: "error", title: "Login failed", message: String(msg), duration: 7000, closable: true });
+      const msg =
+        err?.response?.data?.detail || "Invalid credentials or server error.";
+      showToast({
+        type: "error",
+        title: "Login failed",
+        message: String(msg),
+        duration: 7000,
+        closable: true,
+      });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="auth-wrapper">
-      <div className="card auth-card">
+    <div className="d-flex min-vh-100 align-items-center justify-content-center py-5">
+      <div className="card shadow-sm p-4" style={{ width: 520 }}>
         <div className="card-body">
           <h3 className="mb-3">Sign in</h3>
-          <p className="text-muted mb-3">Welcome back — please sign in to continue.</p>
+          <p className="text-muted mb-3">
+            Welcome back — please sign in to continue.
+          </p>
 
           <form onSubmit={handleSubmit}>
             <div className="mb-3">
@@ -67,7 +77,7 @@ const Login = () => {
               <input
                 type="text"
                 className="form-control"
-                placeholder="Your username"
+                placeholder="Your username (same as registration)"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
@@ -75,20 +85,22 @@ const Login = () => {
               />
             </div>
 
-            <div className="mb-3">
-              <label className="form-label">Password</label>
-              <input
-                type="password"
-                className="form-control"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
+            <PasswordInput
+              label="Password"
+              name="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              required={true}
+              autoComplete="current-password"
+            />
 
             <div className="d-flex justify-content-between align-items-center">
-              <button type="submit" className="btn btn-primary" disabled={loading}>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={loading}
+              >
                 {loading ? "Signing in..." : "Sign in"}
               </button>
 
@@ -101,6 +113,7 @@ const Login = () => {
               </button>
             </div>
           </form>
+        </div>
         </div>
       </div>
     </div>

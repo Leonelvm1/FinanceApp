@@ -18,10 +18,10 @@ Notes / design decisions:
     - explicit index definitions for commonly queried columns
 """
 
-from sqlalchemy import Column, Integer, String, Date, Float, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, Float, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from app.dataBase.configuration import Base
-from datetime import date
+from datetime import date, datetime, timezone
 
 # =========================
 # User Table
@@ -53,7 +53,7 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     full_name = Column(String(100), nullable=False)
-    birth_date = Column(Date, nullable=False)
+    birth_date = Column(DateTime(timezone=True), nullable=False)
     location = Column(String(100), nullable=False)
     savings_goal = Column(Float, nullable=False)
     password = Column(String(255), nullable=False)
@@ -113,7 +113,7 @@ class Category(Base):
     name = Column(String(100), nullable=False)
     description = Column(String(255), nullable=True)
     value = Column(Float, default=0.0)
-    date = Column(Date, default=date.today, nullable=False)
+    date = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
     is_global = Column(Boolean, default=False)
 
     # Ownership: user_id is nullable so global templates can exist without an owner.
@@ -141,7 +141,7 @@ class Expense(Base):
     id = Column(Integer, primary_key=True, index=True)
     description = Column(String(255), nullable=False)
     amount = Column(Float, nullable=False)
-    date = Column(Date, nullable=False)
+    date = Column(DateTime(timezone=True), nullable=False)
 
     category_id = Column(Integer, ForeignKey("categories.id"), nullable=False)
     # Simple relationship to Category used to read category name when returning DTOs
@@ -168,7 +168,7 @@ class Income(Base):
     id = Column(Integer, primary_key=True, index=True)
     description = Column(String(255), nullable=False)
     amount = Column(Float, nullable=False)
-    date = Column(Date, nullable=False)
+    date = Column(DateTime(timezone=True), nullable=False)
 
     category_id = Column(Integer, ForeignKey("categories.id"), nullable=False)
     category = relationship("Category")

@@ -59,6 +59,7 @@ import { AuthContext } from "../context/AuthContext";
 import { validatePassword } from "../utils/validatePassword";
 import CurrencyInput from "../components/CurrencyInput";
 import { useToast } from "../components/Toast";
+import PasswordInput from "../components/PasswordInput";
 
 const cardAnim = {
   initial: { opacity: 0, y: 8, scale: 0.995 },
@@ -77,7 +78,7 @@ const Signup = () => {
     birth_date: "",
     location: "",
     savings_goal: null, // number | null
-    password: ""
+    password: "",
   });
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -161,7 +162,7 @@ const Signup = () => {
   };
 
   return (
-    <div className="d-flex vh-100 align-items-center justify-content-center">
+    <div className="d-flex min-vh-100 align-items-center justify-content-center py-5">
       <motion.div
         className="card shadow-sm p-4"
         style={{ width: 520 }}
@@ -175,15 +176,19 @@ const Signup = () => {
         <form onSubmit={handleSubmit} autoComplete="off">
           <div className="row">
             <div className="col-md-6 mb-3">
-              <label className="form-label">Full name</label>
+              <label className="form-label">Username</label>
               <input
                 name="full_name"
                 className="form-control"
+                placeholder="Choose your username"
                 value={form.full_name}
                 onChange={handleChange}
                 required
-                autoComplete="name"
+                autoComplete="username"
               />
+              <small className="form-text text-muted">
+                You'll use this to log in
+              </small>
             </div>
             <div className="col-md-6 mb-3">
               <label className="form-label">Birth date</label>
@@ -223,54 +228,83 @@ const Signup = () => {
                 currency="USD"
                 className="form-control"
               />
-              <small className="text-muted">Type numbers and separators — we'll store the numeric value.</small>
+              <small className="text-muted">
+                Type numbers and separators — we'll store the numeric value.
+              </small>
             </div>
           </div>
 
           <div className="mb-3">
-            <label className="form-label">Password</label>
-            <input
+            <PasswordInput
+              label="Password"
               name="password"
-              type="password"
-              className="form-control"
               value={form.password}
               onChange={handleChange}
-              required
-              aria-describedby="passwordHelp"
+              placeholder="••••••••"
+              required={true}
               autoComplete="new-password"
+              error={
+                form.password && !pw.valid
+                  ? "Password doesn't meet requirements"
+                  : null
+              }
             />
             <small id="passwordHelp" className="form-text text-muted">
-              Password must be at least 8 characters and include uppercase, lowercase, number & symbol.
+              Password must be at least 8 characters and include uppercase,
+              lowercase, number & symbol.
             </small>
 
             <div className="mt-2">
               <ul className="list-unstyled mb-0" style={{ fontSize: 14 }}>
-                <li style={{ color: pw.reasons.length ? "green" : "#a0a0a0" }}>• Minimum 8 characters</li>
-                <li style={{ color: pw.reasons.hasUpper ? "green" : "#a0a0a0" }}>• Uppercase letter</li>
-                <li style={{ color: pw.reasons.hasLower ? "green" : "#a0a0a0" }}>• Lowercase letter</li>
-                <li style={{ color: pw.reasons.hasNumber ? "green" : "#a0a0a0" }}>• Number</li>
-                <li style={{ color: pw.reasons.hasSymbol ? "green" : "#a0a0a0" }}>• Symbol (e.g. !@#$%)</li>
+                <li style={{ color: pw.reasons.length ? "green" : "#a0a0a0" }}>
+                  • Minimum 8 characters
+                </li>
+                <li
+                  style={{ color: pw.reasons.hasUpper ? "green" : "#a0a0a0" }}
+                >
+                  • Uppercase letter
+                </li>
+                <li
+                  style={{ color: pw.reasons.hasLower ? "green" : "#a0a0a0" }}
+                >
+                  • Lowercase letter
+                </li>
+                <li
+                  style={{ color: pw.reasons.hasNumber ? "green" : "#a0a0a0" }}
+                >
+                  • Number
+                </li>
+                <li
+                  style={{ color: pw.reasons.hasSymbol ? "green" : "#a0a0a0" }}
+                >
+                  • Symbol (e.g. !@#$%)
+                </li>
               </ul>
             </div>
           </div>
 
           <div className="mb-3">
-            <label className="form-label">Confirm Password</label>
-            <input
+            <PasswordInput
+              label="Confirm Password"
               name="confirmPassword"
-              type="password"
-              className="form-control"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              required
+              placeholder="••••••••"
+              required={true}
               autoComplete="new-password"
+              error={
+                !passwordsMatch && confirmPassword.length > 0
+                  ? "Passwords do not match"
+                  : null
+              }
             />
-            {!passwordsMatch && confirmPassword.length > 0 && (
-              <small className="text-danger">Passwords do not match.</small>
-            )}
           </div>
 
-          <button className="btn btn-success w-100" type="submit" disabled={loading}>
+          <button
+            className="btn btn-success w-100"
+            type="submit"
+            disabled={loading}
+          >
             {loading ? "Creating..." : "Create account"}
           </button>
         </form>
@@ -286,5 +320,3 @@ const Signup = () => {
 };
 
 export default Signup;
-
-

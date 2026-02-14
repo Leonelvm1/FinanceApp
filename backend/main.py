@@ -28,6 +28,24 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
+# Centralized exception handlers: return consistent JSON shape for errors
+from fastapi.responses import JSONResponse
+from fastapi.requests import Request
+from fastapi.exceptions import RequestValidationError
+
+
+@app.exception_handler(Exception)
+async def generic_exception_handler(request: Request, exc: Exception):
+    # Log error server-side and return generic message
+    print(f"[ERROR] Unhandled exception: {exc}")
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    # Return 422 with readable details
+    return JSONResponse(status_code=422, content={"detail": exc.errors()})
+
 # Configure allowed CORS origins (comma separated list in FRONTEND_ORIGINS)
 raw_origins = os.getenv("FRONTEND_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173")
 allow_origins = [o.strip() for o in raw_origins.split(",") if o.strip()]
