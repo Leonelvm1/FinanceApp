@@ -311,7 +311,14 @@ const Signup = () => {
 
         <div className="mt-3 text-center">
           <small className="text-muted">
-            Already have an account? <a href="/login">Sign in</a>
+            Already have an account?{" "}
+            <button
+              type="button"
+              className="btn btn-link p-0"
+              onClick={() => navigate("/login")}
+            >
+              Sign in
+            </button>
           </small>
         </div>
       </motion.div>
